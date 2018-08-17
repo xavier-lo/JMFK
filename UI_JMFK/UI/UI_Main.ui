@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1024</width>
+    <height>768</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>JMFK Card Management</string>
+  </property>
+  <property name="layoutDirection">
+   <enum>Qt::LeftToRight</enum>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QWidget" name="gridLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>0</y>
+      <width>1011</width>
+      <height>691</height>
+     </rect>
+    </property>
+    <layout class="QGridLayout" name="gridLayout_operate"/>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1024</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionLincence"/>
+    <addaction name="actionQuit"/>
+   </widget>
+   <widget class="QMenu" name="menuSetting">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+    <addaction name="actionSetting_Interface"/>
+   </widget>
+   <widget class="QMenu" name="menuOperate">
+    <property name="title">
+     <string>Operate</string>
+    </property>
+    <addaction name="actionManagement_Card"/>
+    <addaction name="actionUser_Card"/>
+    <addaction name="actionCard_Total"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionProduct_Description"/>
+    <addaction name="actionWriting_Description"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuSetting"/>
+   <addaction name="menuOperate"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionLincence">
+   <property name="text">
+    <string>License Management</string>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+  </action>
+  <action name="actionChange_IC_Writer_Password">
+   <property name="text">
+    <string>Setting Interface</string>
+   </property>
+  </action>
+  <action name="actionChange_COM_Port">
+   <property name="text">
+    <string>COM Port</string>
+   </property>
+  </action>
+  <action name="actionIC_Sector">
+   <property name="text">
+    <string>IC Sector</string>
+   </property>
+  </action>
+  <action name="actionProduct_Description">
+   <property name="text">
+    <string>Product Description</string>
+   </property>
+  </action>
+  <action name="actionWriting_Description">
+   <property name="text">
+    <string>Write Card Description</string>
+   </property>
+  </action>
+  <action name="actionManagement_Card">
+   <property name="text">
+    <string>Management Card</string>
+   </property>
+  </action>
+  <action name="actionUser_Card">
+   <property name="text">
+    <string>User Card</string>
+   </property>
+  </action>
+  <action name="actionCard_Total">
+   <property name="text">
+    <string>Card Total</string>
+   </property>
+  </action>
+  <action name="actionSetting_Interface">
+   <property name="text">
+    <string>Setting Interface</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
