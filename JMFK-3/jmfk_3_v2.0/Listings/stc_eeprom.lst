@@ -1,0 +1,318 @@
+C51 COMPILER V9.56.0.0   STC_EEPROM                                                        08/08/2018 14:56:20 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE STC_EEPROM
+OBJECT MODULE PLACED IN .\Objects\stc_eeprom.obj
+COMPILER INVOKED BY: d:\Keil_v5\C51\BIN\C51.EXE stc_eeprom.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listing
+                    -s\stc_eeprom.lst) TABS(2) OBJECT(.\Objects\stc_eeprom.obj)
+
+line level    source
+
+   1          ////**********************************////
+   2          //=================//
+   3          //本程序适用于
+   4          //用于JMFK-3 刷卡器
+   5          //MCU：stc89c55rd+
+   6          //晶振：11.0592MHz 震荡周期1.085us
+   7          //文件：STC_eeprom.C
+   8          //================//
+   9          ////**********************************////
+  10          
+  11          #include <stc_eeprom.h>
+  12          #include <intrins.h>
+  13          
+  14          #define RdCommand       0x01
+  15          #define PrgCommand      0x02
+  16          #define EraseCommand    0x03
+  17          #define WaitTime      0x01
+  18          
+  19          #define EEPROM_SATRTADDR  0x8000 //EEPROM起始地址
+  20          
+  21          
+  22          
+  23          /********************************/
+  24          /*name:ISP_IAP_enable           */
+  25          /*discription:打开 ISP/IAP功能  */
+  26          /*var in:                       */
+  27          /*result out:                   */
+  28          /********************************/
+  29          void ISP_IAP_enable(void)
+  30          {
+  31   1        EA  = 0;//关闭中断
+  32   1      //  ISP_CONTR |=  0x18;/*0001,1000*/
+  33   1        ISP_CONTR |=  WaitTime;/*写入硬件延时*/
+  34   1        ISP_CONTR |=  0x80;/*ISPEN=1*/
+  35   1      }
+  36          
+  37          /********************************/
+  38          /*name:ISP_IAP_disable          */
+  39          /*discription:关闭 ISP/IAP功能  */
+  40          /*var in:                       */
+  41          /*result out:                   */
+  42          /********************************/
+  43          void ISP_IAP_disable(void)
+  44          {
+  45   1        ISP_CONTR&=0x7f;/* ISPEN = 0 */
+  46   1        ISP_TRIG=0x00;
+  47   1        EA=1;//开中断
+  48   1      }
+  49          
+  50          /********************************/
+  51          /*name:ISPgoon                  */
+  52          /*discription:IAP/ISP触发       */
+  53          /*var in:                       */
+  54          /*result out:                   */
+C51 COMPILER V9.56.0.0   STC_EEPROM                                                        08/08/2018 14:56:20 PAGE 2   
+
+  55          /********************************/
+  56          void ISPgoon(void)
+  57          {
+  58   1        ISP_IAP_enable();/*打开ISP/IAP功能*/
+  59   1        ISP_TRIG=0x46;/* 触发ISP_IAP字节1 */
+  60   1        ISP_TRIG=0xb9;/* 触发ISP_IAP字节2 */
+  61   1        _nop_();
+  62   1      }
+  63          
+  64          /********************************/
+  65          /*name: byte_read               */
+  66          /*discription:字节读            */
+  67          /*var in:byte_addr 地址         */
+  68          /*result out:ISP_DATA读出数据   */
+  69          /********************************/
+  70          unsigned char byte_read(unsigned int byte_addr)
+  71          {
+  72   1        ISP_ADDRH=(unsigned char)(byte_addr>>8); //地址赋值
+  73   1        ISP_ADDRL=(unsigned char)(byte_addr&0x00ff);
+  74   1        ISP_CMD&=0xf8;  //清除低三位
+  75   1        ISP_CMD|=RdCommand;//写入读命令
+  76   1        ISPgoon();//触发执行
+  77   1        ISP_IAP_disable();//关闭
+  78   1        return ISP_DATA;//返回数据
+  79   1      }
+  80          
+  81          /********************************/
+  82          /*name:sectorerase              */
+  83          /*discription:扇区擦除          */
+  84          /*var in:sector_addr扇区地址    */
+  85          /*result out:                   */
+  86          /********************************/
+  87          void sectorerase(unsigned int sector_addr)
+  88          {
+  89   1        if((sector_addr % 512)  !=  0)
+  90   1        {
+  91   2          sector_addr = sector_addr & 0x1ff;
+  92   2        }
+  93   1        ISP_ADDRH=(unsigned char)(sector_addr>>8);
+  94   1        ISP_ADDRL=0x00;
+  95   1        ISP_CMD&=0xf8;//清除低三位
+  96   1        ISP_CMD|=EraseCommand;//写入擦除命令
+  97   1        ISPgoon();//触发执行
+  98   1        ISP_IAP_disable();//关闭  
+  99   1      
+ 100   1      
+ 101   1      }
+ 102          
+ 103          
+ 104          /********************************/
+ 105          /*name:byte_write               */
+ 106          /*discription:字节写            */
+ 107          /*var in:byte_addr 地址         */
+ 108          /*var in:original_data写入数据  */
+ 109          /*result out:                   */
+ 110          /********************************/
+ 111          //void byte_write(unsigned int byte_addr, unsigned char original_data)
+ 112          //{
+ 113          //  ISP_ADDRH=(unsigned char)(byte_addr>>8); //地址赋值
+ 114          //  ISP_ADDRL=(unsigned char)(byte_addr & 0x00ff);
+ 115          //  ISP_CMD&=0xf8;//清除低三位
+ 116          //  ISP_CMD|=PrgCommand;//写入写命令
+C51 COMPILER V9.56.0.0   STC_EEPROM                                                        08/08/2018 14:56:20 PAGE 3   
+
+ 117          //  ISP_DATA=original_data;//写入数据准备
+ 118          //  ISPgoon();//触发执行
+ 119          //  ISP_IAP_disable();//关闭
+ 120          //}
+ 121          
+ 122          /********************************/
+ 123          /*name:byte_write_verify        */
+ 124          /*discription:字节写并校验      */
+ 125          /*var in:byte_addr 地址         */
+ 126          /*var in:original_data写入数据  */
+ 127          /*result out:写入状态           */
+ 128          /********************************/
+ 129          bit byte_write_verify(unsigned int byte_addr, unsigned char original_data)
+ 130          {
+ 131   1        ISP_ADDRH=(unsigned char)(byte_addr>>8); //地址赋值
+ 132   1        ISP_ADDRL=(unsigned char)(byte_addr&0xff);
+ 133   1        ISP_CMD&=0xf8;//清除低三位
+ 134   1        ISP_CMD|=PrgCommand;//写入写命令
+ 135   1        ISP_DATA=original_data;
+ 136   1        ISPgoon();//触发执行
+ 137   1        /*开始读 不用重复给地址 地址不会自动改变*/
+ 138   1        ISP_DATA=0x00;//清楚数据缓冲区寄存器
+ 139   1        ISP_CMD&=0xf8;//清除低三位
+ 140   1        ISP_CMD|=RdCommand;//写入读命令
+ 141   1        ISP_TRIG=0x46;//触发
+ 142   1        ISP_TRIG=0xb9;
+ 143   1        _nop_();/* 延时*/
+ 144   1        ISP_IAP_disable();//关闭
+ 145   1        if(ISP_DATA==original_data)//比较数据是否相等
+ 146   1           return 1;//返回成功
+ 147   1        else
+ 148   1           return 0;
+ 149   1      }
+ 150          
+ 151          
+ 152          
+ 153          /**************************************/
+ 154          /*name: arrywrite_overwrite           */
+ 155          /*discription:写入指定长度数据到eeprom*/
+ 156          /*var in:start_addr 起始地址          */
+ 157          /*var in:lenth 长度                   */
+ 158          /*var in:da 需要写入的数据            */
+ 159          /*result out:  写入状态               */
+ 160          /**************************************/
+ 161          bit arrywrite_overwrite(unsigned int start_addr, unsigned int lenth, unsigned char *da)
+ 162          {
+ 163   1        unsigned int in_addr,i = 0;
+ 164   1        bit st;
+ 165   1        /*禁止跨区写入*/
+ 166   1        if(lenth > 512)
+ 167   1           return 0;
+ 168   1        in_addr = start_addr & 0x01ff;/* 取偏移量 */
+ 169   1        if((in_addr + lenth) > 512)
+ 170   1           return 0;
+ 171   1        in_addr = start_addr;
+ 172   1        while(i < lenth)
+ 173   1        {
+ 174   2          st = byte_write_verify(in_addr,da[i]);
+ 175   2          if(!st)
+ 176   2          {
+ 177   3            return 0;
+ 178   3          }
+C51 COMPILER V9.56.0.0   STC_EEPROM                                                        08/08/2018 14:56:20 PAGE 4   
+
+ 179   2          i++;
+ 180   2          in_addr++;
+ 181   2        }
+ 182   1        return 1;
+ 183   1        
+ 184   1      }
+ 185          
+ 186          
+ 187          
+ 188          /********************************/
+ 189          /*name: arraywrite              */
+ 190          /*discription:写入一个扇区      */
+ 191          /*var in:sector_num 扇区号      */
+ 192          /*var in:array 写入数据         */
+ 193          /*result out:写入状态           */
+ 194          /********************************/
+ 195          /*此程序测试ok 可以用 屏蔽是为了节省ram*/
+ 196          //bit arraywrite(unsigned char sector_num, unsigned char *array)
+ 197          //{
+ 198          //  unsigned int    i;
+ 199          //  unsigned int    in_addr;
+ 200          //  in_addr = EEPROM_SATRTADDR  + sector_num  * 512;
+ 201          //  
+ 202          //  /*逐个写入并校对*/
+ 203          //  ISP_IAP_enable();//打开IAP功能
+ 204          //  /*一个扇区512字节*/
+ 205          //  for(i=0;i < 512;i++)
+ 206          //    {
+ 207          //     /* 写一个字节 */
+ 208          //     ISP_ADDRH=(unsigned char)(in_addr >> 8);
+ 209          //     ISP_ADDRL=(unsigned char)(in_addr & 0x00ff);
+ 210          //     ISP_DATA=array[i];   /* 取数据     */
+ 211          //     ISP_CMD&=0xf8;/* 清楚低3位       */
+ 212          //     ISP_CMD|=PrgCommand;/*写入写命令*/
+ 213          //     ISP_TRIG=0x46;//触发
+ 214          //     ISP_TRIG=0xb9;
+ 215          //     _nop_();
+ 216          //     /* 读一个字节 */
+ 217          //     ISP_DATA=0x00;
+ 218          //     ISP_CMD&=0xf8;/* 清楚低3位 */
+ 219          //     ISP_CMD|=RdCommand;/* 写入读数据*/
+ 220          //     ISP_TRIG=0x46;//触发
+ 221          //     ISP_TRIG=0xb9;
+ 222          //     _nop_();
+ 223          //     /*  比较相等 */
+ 224          //     if(ISP_DATA!=array[i])
+ 225          //      {
+ 226          //       ISP_IAP_disable();
+ 227          //       return 0;
+ 228          //      }
+ 229          //      in_addr++;/* 指向下一个字节*/
+ 230          //     }
+ 231          //     ISP_IAP_disable();
+ 232          //     return 1;
+ 233          //}
+ 234          
+ 235          /********************************/
+ 236          /*name:arrayread                */
+ 237          /*discription:读一个扇区数据    */
+ 238          /*var in:sector_num 扇区号      */
+ 239          /*result out:                   */
+ 240          /********************************/
+C51 COMPILER V9.56.0.0   STC_EEPROM                                                        08/08/2018 14:56:20 PAGE 5   
+
+ 241          /*此程序测试ok 可以用 屏蔽是为了节省ram*/
+ 242          //void arrayread(unsigned char sector_num, unsigned char *out)
+ 243          //{
+ 244          //  unsigned int iSectorAddr;
+ 245          //  unsigned int i;
+ 246          //  iSectorAddr = EEPROM_SATRTADDR  + sector_num  * 512;     // & 0xfe00; /*取扇区地址*/
+ 247          //  ISP_IAP_enable();
+ 248          //  /*一个扇区512字节*/
+ 249          //  for(i=0;i<512;i++)
+ 250          //  {
+ 251          //    ISP_ADDRH=(unsigned char)(iSectorAddr>>8);
+ 252          //    ISP_ADDRL=(unsigned char)(iSectorAddr & 0x00ff);
+ 253          //    ISP_CMD&=0xf8;/* 清楚低3位 */
+ 254          //    ISP_CMD|=RdCommand;/* 写入读命令*/
+ 255          //    ISP_DATA=0;
+ 256          //    ISP_TRIG=0x46;//触发
+ 257          //    ISP_TRIG=0xb9;
+ 258          //    _nop_();
+ 259          //    out[i]=ISP_DATA;
+ 260          //    iSectorAddr++;
+ 261          //  }
+ 262          //  ISP_IAP_disable();//关闭
+ 263          //}
+ 264          
+ 265          
+ 266          /********************************/
+ 267          /*name:arrayread_overwirte      */
+ 268          /*discription:读指定长度数据    */
+ 269          /*var in:start_addr 起始地址    */
+ 270          /*var in:lenth 长度             */
+ 271          /*result out:                   */
+ 272          /********************************/
+ 273          void arrayread_overwirte(unsigned int start_addr, unsigned int lenth, unsigned char *out)
+ 274          {
+ 275   1        unsigned int iSectorAddr;
+ 276   1        unsigned int i;
+ 277   1        iSectorAddr = start_addr;
+ 278   1        ISP_IAP_enable();
+ 279   1        /*一个扇区512字节*/
+ 280   1        for(i=0;i<lenth;i++)
+ 281   1        {
+ 282   2          out[i]=byte_read(iSectorAddr);
+ 283   2          iSectorAddr++;
+ 284   2        }
+ 285   1        ISP_IAP_disable();//关闭
+ 286   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    325    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      18
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

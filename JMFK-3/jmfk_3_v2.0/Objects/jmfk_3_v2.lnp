@@ -1,0 +1,12 @@
+".\Objects\main.obj",
+".\Objects\STC_INIT.obj",
+".\Objects\STC_ISR.obj",
+".\Objects\STC_USER.obj",
+".\Objects\operate_card.obj",
+".\Objects\time_sd2200.obj",
+".\Objects\SHJY_IIC.obj",
+".\Objects\stc_eeprom.obj" 
+TO ".\Objects\jmfk_3_v2" 
+PRINT(".\Listings\jmfk_3_v2.m51") RAMSIZE(256) 
+CODE( 0X0000-0X1FFFF )
+XDATA( 0X0000-0X1FFF )

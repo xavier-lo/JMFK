@@ -1,0 +1,187 @@
+C51 COMPILER V9.56.0.0   STC_ISR                                                           08/08/2018 14:56:20 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE STC_ISR
+OBJECT MODULE PLACED IN .\Objects\STC_ISR.obj
+COMPILER INVOKED BY: d:\Keil_v5\C51\BIN\C51.EXE STC_ISR.C OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\S
+                    -TC_ISR.lst) TABS(2) OBJECT(.\Objects\STC_ISR.obj)
+
+line level    source
+
+   1          ////**********************************////
+   2          //=================//
+   3          //本程序适用于
+   4          //用于JMFK-3 刷卡器
+   5          //MCU：stc89c55rd+
+   6          //晶振：11.0592MHz 震荡周期1.085us
+   7          //文件：STC_ISR.C
+   8          //================//
+   9          ////**********************************////
+  10          #include <STC_ISR.H>
+  11          #include <STC_USER.H>
+  12          #include <stc_eeprom.h>
+  13          
+  14          
+  15          #define repeat_card_count 80 //重复刷卡时长
+  16          
+  17          sbit BEEP = P3^7;
+  18          
+  19          /*局部变量定义*/
+  20          unsigned char t0_count,t0_count1,t0_count5; 
+  21          
+  22          /**/
+  23          /*全局变量定义*/
+  24          volatile bit delay40ms_ready = 0;
+  25          volatile bit beep_start = 0;
+  26          
+  27          extern bit delay_5s_start;//用户卡有效5s开始 
+  28          extern bit delay_5s_stop;//用户卡有效5s结束
+  29          extern bit repeat_bit;//重复读卡计数开始
+  30          extern bit repeat_bit1;//重复读卡计数开始
+  31          extern bit delay1s_ready;//读取时间周期1s
+  32          extern unsigned char pre_IC_ISN[4];//防止短时间重复读卡
+  33          extern unsigned char pre_IC_ISN1[4];//防止短时间重复读卡
+  34          volatile unsigned char t0_count2;
+  35          volatile unsigned char t0_count4;
+  36          volatile unsigned char t0_count3;
+  37          /**/
+  38          
+  39          
+  40          //*************************//
+  41          //name:init_time0
+  42          //discription:定时器0中断初始化
+  43          //in:
+  44          //out:
+  45          void TIME0_ISR()interrupt 1 using 1
+  46          {
+  47   1          TH0=(65535-t_20ms)/256;
+  48   1          TL0=(65535-t_20ms)%256; 
+  49   1          /*寻卡间隔*/
+  50   1          t0_count++;
+  51   1          if(t0_count > 2)
+  52   1          {
+  53   2            t0_count = 0;
+  54   2            delay40ms_ready = 1;
+C51 COMPILER V9.56.0.0   STC_ISR                                                           08/08/2018 14:56:20 PAGE 2   
+
+  55   2            P14=!P14;
+  56   2          }
+  57   1          /*读时间间隔*/
+  58   1          t0_count5++;
+  59   1          if(t0_count5 > 50)
+  60   1          {
+  61   2            t0_count5 = 0;
+  62   2            delay1s_ready = 1;    
+  63   2          } 
+  64   1          
+  65   1          /*蜂鸣器有卡响应*/
+  66   1          if(beep_start)
+  67   1          {
+  68   2            t0_count1++;
+  69   2            if(t0_count1 == 1)
+  70   2            {
+  71   3              BEEP = 1;
+  72   3            }
+  73   2            if(t0_count1 > 10)
+  74   2            {
+  75   3              BEEP = 0;
+  76   3              t0_count1 = 0;
+  77   3              beep_start = 0;
+  78   3            }
+  79   2          }
+  80   1          /*重复读卡停止读卡间隔1*/
+  81   1          if(repeat_bit)
+  82   1          {
+  83   2            t0_count2++;
+  84   2            if(t0_count2 > repeat_card_count)
+  85   2            {
+  86   3              t0_count2 = 0;
+  87   3              repeat_bit = 0;
+  88   3              pre_IC_ISN[0] = 0; 
+  89   3              pre_IC_ISN[1] = 0; 
+  90   3              pre_IC_ISN[2] = 0; 
+  91   3              pre_IC_ISN[3] = 0; 
+  92   3            }     
+  93   2          }
+  94   1          /*重复读卡停止读卡间隔2*/   
+  95   1          if(repeat_bit1)
+  96   1          {
+  97   2            t0_count4++;
+  98   2            if(t0_count4 > repeat_card_count)
+  99   2            {
+ 100   3              t0_count4 = 0;
+ 101   3              repeat_bit1 = 0;
+ 102   3              pre_IC_ISN1[0] = 0; 
+ 103   3              pre_IC_ISN1[1] = 0; 
+ 104   3              pre_IC_ISN1[2] = 0; 
+ 105   3              pre_IC_ISN1[3] = 0; 
+ 106   3            }     
+ 107   2          }
+ 108   1          /*用户卡有效5s计数*/
+ 109   1          if(delay_5s_start)
+ 110   1          {
+ 111   2            t0_count3++;
+ 112   2            if(t0_count3 > 250)
+ 113   2            {
+ 114   3              t0_count3 = 0;
+ 115   3              delay_5s_start = 0;
+ 116   3              delay_5s_stop = 1;
+C51 COMPILER V9.56.0.0   STC_ISR                                                           08/08/2018 14:56:20 PAGE 3   
+
+ 117   3            }   
+ 118   2          }
+ 119   1      }
+ 120          
+ 121          //******//
+ 122          
+ 123          //*************************//
+ 124          //name:USART1_ISR
+ 125          //discription:
+ 126          //in:
+ 127          //out:
+ 128          void USART1_ISR(void)interrupt 4 using 2
+ 129          {
+ 130   1        int i=0;
+ 131   1        if(RI)
+ 132   1        {
+ 133   2          RI=0;
+ 134   2          
+ 135   2          
+ 136   2        }
+ 137   1        else if(TI)
+ 138   1        {
+ 139   2          TI=0;
+ 140   2        }
+ 141   1      }
+ 142          
+ 143          //******//
+ 144          //*************************//
+ 145          //name:USART1_ISR
+ 146          //discription:
+ 147          //in:
+ 148          //out:
+ 149          void USART2_ISR(void)interrupt 8 using 3
+ 150          {
+ 151   1            if(S2CON&0x01)
+ 152   1            {
+ 153   2              
+ 154   2              S2CON&=0xfe;
+ 155   2            }
+ 156   1      
+ 157   1      }
+ 158          
+ 159          //******//
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    179    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      6       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

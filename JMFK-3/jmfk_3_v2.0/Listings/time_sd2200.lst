@@ -1,0 +1,69 @@
+C51 COMPILER V9.56.0.0   TIME_SD2200                                                       08/08/2018 14:56:20 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE TIME_SD2200
+OBJECT MODULE PLACED IN .\Objects\time_sd2200.obj
+COMPILER INVOKED BY: d:\Keil_v5\C51\BIN\C51.EXE time_sd2200.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listin
+                    -gs\time_sd2200.lst) TABS(2) OBJECT(.\Objects\time_sd2200.obj)
+
+line level    source
+
+   1          ////**********************************////
+   2          //=================//
+   3          //本程序适用于
+   4          //用于JMFK-3 刷卡器
+   5          //MCU：stc89c55rd+
+   6          //晶振：11.0592MHz 震荡周期1.085us
+   7          //文件：time_sd2200.C
+   8          //================//
+   9          #include<time_sd2200.h>
+  10          #include<SHJY_IIC.h>
+  11          
+  12          
+  13          /********************************/
+  14          /*name: read_time               */
+  15          /*discription:读取时间          */
+  16          /*var in:                       */
+  17          /*result out:out 存放读取数据   */
+  18          /********************************/
+  19          /*年 月 日 周 时 分 秒          */
+  20          bit read_time(unsigned char *out)
+  21          {
+  22   1        unsigned char i=0;
+  23   1        bit state = 0;
+  24   1        if(!IIC_START())
+  25   1        {
+  26   2          if(!IIC_send_byte(0x65))//读年 
+  27   2          {
+  28   3            while(i<7)
+  29   3            {
+  30   4              out[i]=IIC_read_Byte(); 
+  31   4              IIC_send_bit(0);//应答0
+  32   4              i++;
+  33   4            }
+  34   3            IIC_send_bit(1);//应答1
+  35   3            state = 1;
+  36   3          }
+  37   2        }
+  38   1        
+  39   1        IIC_STOP();
+  40   1        return state;
+  41   1      }
+  42          
+  43          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     71    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+C51 COMPILER V9.56.0.0   TIME_SD2200                                                       08/08/2018 14:56:20 PAGE 2   
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
