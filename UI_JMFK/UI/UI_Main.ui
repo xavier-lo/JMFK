@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1024</width>
-    <height>768</height>
+    <height>658</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,7 +23,7 @@
       <x>10</x>
       <y>0</y>
       <width>1011</width>
-      <height>691</height>
+      <height>621</height>
      </rect>
     </property>
     <layout class="QGridLayout" name="gridLayout_operate"/>
@@ -40,28 +40,27 @@
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>File</string>
+     <string>文件</string>
     </property>
     <addaction name="actionLincence"/>
     <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuSetting">
     <property name="title">
-     <string>Settings</string>
+     <string>设置</string>
     </property>
     <addaction name="actionSetting_Interface"/>
    </widget>
    <widget class="QMenu" name="menuOperate">
     <property name="title">
-     <string>Operate</string>
+     <string>读写卡</string>
     </property>
     <addaction name="actionManagement_Card"/>
     <addaction name="actionUser_Card"/>
-    <addaction name="actionCard_Total"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
-     <string>Help</string>
+     <string>帮助</string>
     </property>
     <addaction name="actionProduct_Description"/>
     <addaction name="actionWriting_Description"/>

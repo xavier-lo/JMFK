@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>760</width>
-    <height>490</height>
+    <width>1000</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,33 +18,20 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>10</y>
-      <width>731</width>
+      <y>90</y>
+      <width>971</width>
       <height>131</height>
      </rect>
     </property>
     <property name="title">
      <string>选择功能</string>
     </property>
-    <widget class="QCheckBox" name="checkBox">
-     <property name="geometry">
-      <rect>
-       <x>270</x>
-       <y>10</y>
-       <width>71</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>开关卡</string>
-     </property>
-    </widget>
     <widget class="QGroupBox" name="groupBox_3">
      <property name="geometry">
       <rect>
        <x>10</x>
        <y>20</y>
-       <width>131</width>
+       <width>141</width>
        <height>91</height>
       </rect>
      </property>
@@ -55,9 +42,9 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>60</y>
+        <y>55</y>
         <width>54</width>
-        <height>12</height>
+        <height>21</height>
        </rect>
       </property>
       <property name="text">
@@ -67,9 +54,9 @@
      <widget class="QComboBox" name="comboBox">
       <property name="geometry">
        <rect>
-        <x>50</x>
-        <y>10</y>
-        <width>69</width>
+        <x>60</x>
+        <y>20</y>
+        <width>71</width>
         <height>22</height>
        </rect>
       </property>
@@ -78,9 +65,9 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>15</y>
+        <y>20</y>
         <width>54</width>
-        <height>12</height>
+        <height>21</height>
        </rect>
       </property>
       <property name="text">
@@ -90,9 +77,9 @@
      <widget class="QComboBox" name="comboBox_2">
       <property name="geometry">
        <rect>
-        <x>50</x>
+        <x>60</x>
         <y>55</y>
-        <width>69</width>
+        <width>71</width>
         <height>22</height>
        </rect>
       </property>
@@ -101,9 +88,9 @@
     <widget class="QGroupBox" name="groupBox_4">
      <property name="geometry">
       <rect>
-       <x>150</x>
+       <x>160</x>
        <y>20</y>
-       <width>111</width>
+       <width>151</width>
        <height>91</height>
       </rect>
      </property>
@@ -113,10 +100,10 @@
      <widget class="QTextEdit" name="textEdit">
       <property name="geometry">
        <rect>
-        <x>40</x>
+        <x>60</x>
         <y>50</y>
-        <width>61</width>
-        <height>21</height>
+        <width>81</width>
+        <height>31</height>
        </rect>
       </property>
      </widget>
@@ -125,8 +112,8 @@
        <rect>
         <x>10</x>
         <y>20</y>
-        <width>101</width>
-        <height>16</height>
+        <width>141</width>
+        <height>21</height>
        </rect>
       </property>
       <property name="text">
@@ -139,7 +126,7 @@
         <x>10</x>
         <y>55</y>
         <width>54</width>
-        <height>12</height>
+        <height>21</height>
        </rect>
       </property>
       <property name="text">
@@ -151,8 +138,8 @@
      <property name="geometry">
       <rect>
        <x>320</x>
-       <y>30</y>
-       <width>291</width>
+       <y>20</y>
+       <width>531</width>
        <height>91</height>
       </rect>
      </property>
@@ -163,9 +150,9 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>10</y>
-        <width>54</width>
-        <height>12</height>
+        <y>25</y>
+        <width>91</width>
+        <height>16</height>
        </rect>
       </property>
       <property name="text">
@@ -175,9 +162,9 @@
      <widget class="QDateEdit" name="dateEdit">
       <property name="geometry">
        <rect>
-        <x>70</x>
-        <y>5</y>
-        <width>71</width>
+        <x>90</x>
+        <y>20</y>
+        <width>111</width>
         <height>22</height>
        </rect>
       </property>
@@ -185,10 +172,10 @@
      <widget class="QLabel" name="label_5">
       <property name="geometry">
        <rect>
-        <x>150</x>
-        <y>10</y>
-        <width>54</width>
-        <height>12</height>
+        <x>10</x>
+        <y>60</y>
+        <width>81</width>
+        <height>16</height>
        </rect>
       </property>
       <property name="text">
@@ -198,9 +185,9 @@
      <widget class="QDateEdit" name="dateEdit_2">
       <property name="geometry">
        <rect>
-        <x>210</x>
-        <y>5</y>
-        <width>71</width>
+        <x>90</x>
+        <y>55</y>
+        <width>111</width>
         <height>22</height>
        </rect>
       </property>
@@ -208,10 +195,10 @@
      <widget class="QLabel" name="label_6">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>40</y>
-        <width>54</width>
-        <height>12</height>
+        <x>210</x>
+        <y>25</y>
+        <width>81</width>
+        <height>16</height>
        </rect>
       </property>
       <property name="text">
@@ -221,9 +208,9 @@
      <widget class="QTimeEdit" name="timeEdit">
       <property name="geometry">
        <rect>
-        <x>70</x>
-        <y>35</y>
-        <width>51</width>
+        <x>290</x>
+        <y>20</y>
+        <width>71</width>
         <height>22</height>
        </rect>
       </property>
@@ -231,10 +218,10 @@
      <widget class="QLabel" name="label_7">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>70</y>
-        <width>54</width>
-        <height>12</height>
+        <x>210</x>
+        <y>60</y>
+        <width>81</width>
+        <height>16</height>
        </rect>
       </property>
       <property name="text">
@@ -244,21 +231,87 @@
      <widget class="QTimeEdit" name="timeEdit_2">
       <property name="geometry">
        <rect>
-        <x>70</x>
-        <y>60</y>
-        <width>51</width>
+        <x>290</x>
+        <y>55</y>
+        <width>71</width>
         <height>22</height>
        </rect>
       </property>
      </widget>
+     <widget class="QTimeEdit" name="timeEdit_5">
+      <property name="geometry">
+       <rect>
+        <x>370</x>
+        <y>55</y>
+        <width>71</width>
+        <height>22</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QTimeEdit" name="timeEdit_6">
+      <property name="geometry">
+       <rect>
+        <x>370</x>
+        <y>20</y>
+        <width>71</width>
+        <height>22</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QTimeEdit" name="timeEdit_7">
+      <property name="geometry">
+       <rect>
+        <x>450</x>
+        <y>55</y>
+        <width>71</width>
+        <height>22</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QTimeEdit" name="timeEdit_8">
+      <property name="geometry">
+       <rect>
+        <x>450</x>
+        <y>20</y>
+        <width>71</width>
+        <height>22</height>
+       </rect>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QCheckBox" name="checkBox">
+     <property name="geometry">
+      <rect>
+       <x>870</x>
+       <y>40</y>
+       <width>101</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>开关卡</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton">
+     <property name="geometry">
+      <rect>
+       <x>860</x>
+       <y>70</y>
+       <width>101</width>
+       <height>34</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>写卡</string>
+     </property>
     </widget>
    </widget>
    <widget class="QGroupBox" name="groupBox_2">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>140</y>
-      <width>731</width>
+      <y>230</y>
+      <width>971</width>
       <height>301</height>
      </rect>
     </property>
@@ -271,7 +324,7 @@
        <x>20</x>
        <y>270</y>
        <width>71</width>
-       <height>16</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -284,7 +337,7 @@
        <x>110</x>
        <y>270</y>
        <width>71</width>
-       <height>16</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -297,7 +350,7 @@
        <x>200</x>
        <y>270</y>
        <width>71</width>
-       <height>16</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -310,7 +363,7 @@
        <x>290</x>
        <y>270</y>
        <width>71</width>
-       <height>16</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -323,7 +376,7 @@
        <x>380</x>
        <y>270</y>
        <width>71</width>
-       <height>16</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -336,7 +389,7 @@
        <x>470</x>
        <y>270</y>
        <width>71</width>
-       <height>16</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -349,7 +402,7 @@
        <x>560</x>
        <y>270</y>
        <width>71</width>
-       <height>16</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -362,11 +415,128 @@
        <x>650</x>
        <y>270</y>
        <width>71</width>
-       <height>16</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
       <string>列选</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QGroupBox" name="groupBox_6">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>0</y>
+      <width>971</width>
+      <height>80</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>IC卡信息</string>
+    </property>
+    <widget class="QLabel" name="label_15">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>30</y>
+       <width>61</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>序列号：</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_16">
+     <property name="geometry">
+      <rect>
+       <x>80</x>
+       <y>30</y>
+       <width>171</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>TextLabel</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_17">
+     <property name="geometry">
+      <rect>
+       <x>250</x>
+       <y>30</y>
+       <width>81</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>用户名：</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_18">
+     <property name="geometry">
+      <rect>
+       <x>320</x>
+       <y>30</y>
+       <width>101</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>TextLabel</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_19">
+     <property name="geometry">
+      <rect>
+       <x>470</x>
+       <y>30</y>
+       <width>81</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>公司：</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_20">
+     <property name="geometry">
+      <rect>
+       <x>520</x>
+       <y>30</y>
+       <width>181</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>TextLabel</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_21">
+     <property name="geometry">
+      <rect>
+       <x>700</x>
+       <y>30</y>
+       <width>101</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>卡片状态：</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_22">
+     <property name="geometry">
+      <rect>
+       <x>800</x>
+       <y>30</y>
+       <width>111</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>TextLabel</string>
      </property>
     </widget>
    </widget>
@@ -376,8 +546,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>760</width>
-     <height>23</height>
+     <width>1000</width>
+     <height>30</height>
     </rect>
    </property>
   </widget>

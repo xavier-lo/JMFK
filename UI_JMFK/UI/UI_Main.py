@@ -11,12 +11,12 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1024, 768)
+        MainWindow.resize(1024, 658)
         MainWindow.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayoutWidget = QtWidgets.QWidget(self.centralwidget)
-        self.gridLayoutWidget.setGeometry(QtCore.QRect(10, 0, 1011, 691))
+        self.gridLayoutWidget.setGeometry(QtCore.QRect(10, 0, 1011, 621))
         self.gridLayoutWidget.setObjectName("gridLayoutWidget")
         self.gridLayout_operate = QtWidgets.QGridLayout(self.gridLayoutWidget)
         self.gridLayout_operate.setContentsMargins(0, 0, 0, 0)
@@ -64,7 +64,6 @@ class Ui_MainWindow(object):
         self.menuSetting.addAction(self.actionSetting_Interface)
         self.menuOperate.addAction(self.actionManagement_Card)
         self.menuOperate.addAction(self.actionUser_Card)
-        self.menuOperate.addAction(self.actionCard_Total)
         self.menuHelp.addAction(self.actionProduct_Description)
         self.menuHelp.addAction(self.actionWriting_Description)
         self.menubar.addAction(self.menuFile.menuAction())
@@ -78,10 +77,10 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "JMFK Card Management"))
-        self.menuFile.setTitle(_translate("MainWindow", "File"))
-        self.menuSetting.setTitle(_translate("MainWindow", "Settings"))
-        self.menuOperate.setTitle(_translate("MainWindow", "Operate"))
-        self.menuHelp.setTitle(_translate("MainWindow", "Help"))
+        self.menuFile.setTitle(_translate("MainWindow", "文件"))
+        self.menuSetting.setTitle(_translate("MainWindow", "设置"))
+        self.menuOperate.setTitle(_translate("MainWindow", "读写卡"))
+        self.menuHelp.setTitle(_translate("MainWindow", "帮助"))
         self.actionLincence.setText(_translate("MainWindow", "License Management"))
         self.actionQuit.setText(_translate("MainWindow", "Quit"))
         self.actionChange_IC_Writer_Password.setText(_translate("MainWindow", "Setting Interface"))

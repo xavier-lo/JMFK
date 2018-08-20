@@ -23,19 +23,19 @@
     </rect>
    </property>
    <property name="title">
-    <string>Setting</string>
+    <string>配置</string>
    </property>
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>40</x>
+      <x>70</x>
       <y>90</y>
       <width>81</width>
-      <height>18</height>
+      <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>COM Port:</string>
+     <string>串口:</string>
     </property>
    </widget>
    <widget class="QComboBox" name="comboBox_comport">
@@ -51,14 +51,14 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>40</x>
+      <x>70</x>
       <y>140</y>
       <width>101</width>
       <height>18</height>
      </rect>
     </property>
     <property name="text">
-     <string>IC Sector:</string>
+     <string>扇区:</string>
     </property>
    </widget>
    <widget class="QComboBox" name="comboBox_sector">
@@ -74,14 +74,14 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>40</x>
+      <x>70</x>
       <y>200</y>
       <width>81</width>
       <height>18</height>
      </rect>
     </property>
     <property name="text">
-     <string>Password:</string>
+     <string>密码:</string>
     </property>
    </widget>
    <widget class="QTextEdit" name="textEdit_password">
@@ -104,7 +104,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>SAVE</string>
+     <string>保存</string>
     </property>
    </widget>
   </widget>
