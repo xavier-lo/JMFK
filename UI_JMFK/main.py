@@ -4,7 +4,7 @@ import sys
 import re
 sys.path.append('./UI/UI_Main.py')
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication,QMainWindow,QDialog,QMessageBox,QErrorMessage
+from PyQt5.QtWidgets import QApplication,QMainWindow,QDialog,QMessageBox,QErrorMessage,QTableWidgetItem
 import serial
 
 import serial.tools.list_ports
@@ -18,6 +18,7 @@ from UI.UI_User import Ui_User
 COM_PORT =  None #串口
 SECTOR  =   None #扇区
 PASS    =   None #密码
+isnstate = 0 #新序列号保存状态
 
 class Main(QMainWindow,Ui_MainWindow):
     def __init__(self):
@@ -140,9 +141,40 @@ class Management(QMainWindow,Ui_Management):
         fp = open(path + '\\ISNS.csv', 'r')
 
         cf = fp.readlines()
-        s1 ='['+ cf[1] + ']'
-        s1 = eval(s1)
-        print(s1)
+        self.tableWidget.setRowCount(len(cf) - 1)
+        #以,分割成列表 并显示到tableWidget上
+        i =  0
+        while i < len(cf) - 1:
+            ss = cf[i + 1].strip(',').split(',')
+            j = 0
+            while j < len(ss):
+                self.tableWidget.setItem(i, j, QTableWidgetItem(str(ss[j])))
+                print(ss[j])
+                j = j + 1
+            i = i + 1
+        fp.close()
+
+        #新建序列号按钮事件
+
+        self.pushButton_createSerialNum.clicked.connect(self.create_serialnum)
+
+    def create_serialnum(self):
+        if isnstate == 0:
+            path = sys.path[0].__str__()
+            #fp = open(path  + '\\test.txt','a')
+            #fp.write("few" + '\n')
+            #fp.close()
+            fp = open(path + '\\ISNS.csv','r')
+            ss = fp.readlines()
+            self.tableWidget.setRowCount(len(ss))
+            sss = ss[len(ss) - 1].strip(',').split(',')
+            sss = str(int(sss[0]) + 1)
+            self.tableWidget.setItem(len(ss) -1,0,QTableWidgetItem(sss))
+            #isnstate = 1
+        else:
+            QMessageBox.warning(self, "input error", "last creatting not saved", QMessageBox.Close)
+            pass
+
     def allselect1(self):
         if self.checkBox_65.checkState() == QtCore.Qt.Checked:
             for i in range(0,8):
