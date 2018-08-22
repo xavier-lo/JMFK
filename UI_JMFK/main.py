@@ -1,10 +1,11 @@
-
-
+# -*- coding: utf-8 -*-
 import sys
 import re
 sys.path.append('./UI/UI_Main.py')
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication,QMainWindow,QDialog,QMessageBox,QErrorMessage,QTableWidgetItem
+from PyQt5.QtWidgets import QApplication,QMainWindow,QDialog,QMessageBox,QErrorMessage,QTableWidgetItem,QGraphicsScene,QGraphicsPixmapItem
+from PyQt5.QtGui import QPixmap
+
 import serial
 
 import serial.tools.list_ports
@@ -18,7 +19,6 @@ from UI.UI_User import Ui_User
 COM_PORT =  None #串口
 SECTOR  =   None #扇区
 PASS    =   None #密码
-isnstate = 0 #新序列号保存状态
 
 class Main(QMainWindow,Ui_MainWindow):
     def __init__(self):
@@ -136,9 +136,108 @@ class Management(QMainWindow,Ui_Management):
         self.checkBox_70.stateChanged.connect(self.allselect6)
         self.checkBox_71.stateChanged.connect(self.allselect7)
         self.checkBox_72.stateChanged.connect(self.allselect8)
-        #显示序列号
+
+        #tablewidget尺寸设置
+        self.tableWidget.setColumnWidth(0,100)
+        self.tableWidget.setColumnWidth(1,100)
+        self.tableWidget.setColumnWidth(2,200)
+        self.tableWidget.setColumnWidth(3,200)
+        self.tableWidget.setColumnWidth(4,100)
+        self.tableWidget.setColumnWidth(5,100)
+        #加载搜索图标
+
+        self.image = QPixmap()
         path = sys.path[0].__str__()
-        fp = open(path + '\\ISNS.csv', 'r')
+        self.image.load(path+ '\\search1.png')
+
+        #self.graphicsView.scene = QGraphicsScene()            # 创建一个图片元素的对象
+        #item = QGraphicsPixmapItem(self.image)                # 创建一个变量用于承载加载后的图片
+        #self.graphicsView.scene.addItem(item)                 # 将加载后的图片传递给scene对象
+        #self.graphicsView.setScene(self.graphicsView.scene)   # 这个我也不知道是做了个啥
+
+        self.label_5.setPixmap(self.image)
+        #检索
+        self.textEdit.textChanged.connect(self.search_isn)
+        #显示序列号
+        self.display_isn()
+        #新建序列号按钮事件
+        self.create_isn_state = 0 #写入状态
+        self.pushButton_createSerialNum.clicked.connect(self.create_serialnum)
+        self.pushButton_saveisn.clicked.connect(self.save_isn)
+
+     #检索用户信息
+    def search_isn(self):
+        ll = []
+        path = sys.path[0].__str__()
+        fp = open(path + '\\ISNS.csv', 'r', encoding = 'UTF-8')
+        ss = fp.readlines()
+        for i in ss:
+            if self.textEdit.toPlainText() in i:
+                ll.append(i)
+        self.tableWidget.clear()
+        self.tableWidget.setRowCount(len(ss) - 1)
+        #以,分割成列表 并显示到tableWidget上
+        i =  0
+        while i < len(ss) - 1:
+            ss = ss[i + 1].strip(',').split(',')
+            j = 0
+            while j < len(ss):
+                self.tableWidget.setItem(i, j, QTableWidgetItem(str(ss[j])))
+                j = j + 1
+            i = i + 1
+        pass
+
+    #新建序列号
+    def create_serialnum(self):
+        if self.create_isn_state == 0:
+            path = sys.path[0].__str__()
+            fp = open(path + '\\ISNS.csv',  'r', encoding = 'UTF-8')
+            ss = fp.readlines()
+            self.tableWidget.setRowCount(len(ss))
+            sss = ss[len(ss) - 1].strip(',').split(',')
+            sss = '000' + str(int(sss[0]) + 1)
+            self.tableWidget.setItem(len(ss) - 1, 0, QTableWidgetItem(sss))
+            for i in range(1,3):
+                self.tableWidget.setItem(len(ss) -1,i,QTableWidgetItem('*'))
+            time = str(datetime.datetime.now())
+            self.tableWidget.setItem(len(ss) - 1, 3, QTableWidgetItem(time[0:16]))
+            self.tableWidget.setItem(len(ss) - 1, 4, QTableWidgetItem("未发卡"))
+            self.tableWidget.setItem(len(ss) - 1, 5, QTableWidgetItem("创建中"))
+            fp.close()
+            self.create_isn_state = 1
+            pass
+        else:
+            QMessageBox.warning(self, "input error", "上次创建未保存", QMessageBox.Close)
+            pass
+
+    #保存新建序列号
+    def save_isn(self):
+        if self.create_isn_state == 1:
+            new_data = []
+            row = self.tableWidget.rowCount() - 1
+            for i in range(0,6):
+                da = self.tableWidget.item(row,i).text()
+                new_data.append(da)
+                pass
+            path = sys.path[0].__str__()
+            fp = open(path + '\\ISNS.csv','a', encoding = 'UTF-8')
+            new_data[3] = new_data[3][0:10] + '_' + new_data[3][11:16]
+            new_data[5] ="使用中"
+            ss = str(new_data)
+            ss = re.sub("[\s+\[+\]+\']","",ss)
+            ss = '\n' + ss.replace('_',' ')
+            fp.write(ss)
+            fp.close()
+            self.display_isn()
+            self.create_isn_state = 0
+            pass
+        else:
+            QMessageBox.warning(self, "input error", "本次次创建已保存，请重新创建", QMessageBox.Close)
+            pass
+    #显示序列号到tablewidget
+    def display_isn(self):
+        path = sys.path[0].__str__()
+        fp = open(path + '\\ISNS.csv', 'r', encoding = 'UTF-8')
 
         cf = fp.readlines()
         self.tableWidget.setRowCount(len(cf) - 1)
@@ -149,32 +248,12 @@ class Management(QMainWindow,Ui_Management):
             j = 0
             while j < len(ss):
                 self.tableWidget.setItem(i, j, QTableWidgetItem(str(ss[j])))
-                print(ss[j])
                 j = j + 1
             i = i + 1
         fp.close()
+        pass
 
-        #新建序列号按钮事件
-
-        self.pushButton_createSerialNum.clicked.connect(self.create_serialnum)
-
-    def create_serialnum(self):
-        if isnstate == 0:
-            path = sys.path[0].__str__()
-            #fp = open(path  + '\\test.txt','a')
-            #fp.write("few" + '\n')
-            #fp.close()
-            fp = open(path + '\\ISNS.csv','r')
-            ss = fp.readlines()
-            self.tableWidget.setRowCount(len(ss))
-            sss = ss[len(ss) - 1].strip(',').split(',')
-            sss = str(int(sss[0]) + 1)
-            self.tableWidget.setItem(len(ss) -1,0,QTableWidgetItem(sss))
-            #isnstate = 1
-        else:
-            QMessageBox.warning(self, "input error", "last creatting not saved", QMessageBox.Close)
-            pass
-
+     #全选checkbox
     def allselect1(self):
         if self.checkBox_65.checkState() == QtCore.Qt.Checked:
             for i in range(0,8):

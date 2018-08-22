@@ -272,66 +272,105 @@
       <property name="title">
        <string/>
       </property>
-      <widget class="QPushButton" name="pushButton_createSerialNum">
+      <widget class="QGroupBox" name="groupBox_5">
        <property name="geometry">
         <rect>
-         <x>30</x>
-         <y>30</y>
-         <width>111</width>
-         <height>31</height>
+         <x>10</x>
+         <y>2</y>
+         <width>431</width>
+         <height>71</height>
         </rect>
        </property>
-       <property name="text">
-        <string>新建序列号</string>
+       <property name="title">
+        <string>序列号处理</string>
        </property>
+       <widget class="QPushButton" name="pushButton_6">
+        <property name="geometry">
+         <rect>
+          <x>290</x>
+          <y>20</y>
+          <width>121</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>挂失序列号</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="pushButton_createSerialNum">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>20</y>
+          <width>111</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>新建序列号</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="pushButton_saveisn">
+        <property name="geometry">
+         <rect>
+          <x>160</x>
+          <y>20</y>
+          <width>101</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>保存序列号</string>
+        </property>
+       </widget>
       </widget>
-      <widget class="QPushButton" name="pushButton_5">
+      <widget class="QGroupBox" name="groupBox_6">
        <property name="geometry">
         <rect>
-         <x>320</x>
-         <y>30</y>
-         <width>111</width>
-         <height>31</height>
+         <x>470</x>
+         <y>2</y>
+         <width>311</width>
+         <height>71</height>
         </rect>
        </property>
-       <property name="text">
-        <string>写入管理卡</string>
+       <property name="title">
+        <string>IC卡处理</string>
        </property>
-      </widget>
-      <widget class="QPushButton" name="pushButton_6">
-       <property name="geometry">
-        <rect>
-         <x>170</x>
-         <y>30</y>
-         <width>121</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>挂失序列号</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="pushButton_4">
-       <property name="geometry">
-        <rect>
-         <x>460</x>
-         <y>30</y>
-         <width>181</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>初始新序列用户卡</string>
-       </property>
+       <widget class="QPushButton" name="pushButton_4">
+        <property name="geometry">
+         <rect>
+          <x>170</x>
+          <y>20</y>
+          <width>121</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>序列号写入用户卡</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="pushButton_5">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>20</y>
+          <width>121</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>序列号写入管理卡</string>
+        </property>
+       </widget>
       </widget>
      </widget>
      <widget class="QTableWidget" name="tableWidget">
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>100</y>
+        <y>130</y>
         <width>911</width>
-        <height>391</height>
+        <height>361</height>
        </rect>
       </property>
       <column>
@@ -364,6 +403,35 @@
         <string>卡片状态</string>
        </property>
       </column>
+     </widget>
+     <widget class="QLabel" name="label_5">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>100</y>
+        <width>21</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="textEdit">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>100</y>
+        <width>181</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Adobe Arabic</family>
+        <pointsize>9</pointsize>
+       </font>
+      </property>
      </widget>
     </widget>
     <widget class="QWidget" name="tab_3">
