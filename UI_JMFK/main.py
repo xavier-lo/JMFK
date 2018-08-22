@@ -3,7 +3,7 @@ import sys
 import re
 sys.path.append('./UI/UI_Main.py')
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication,QMainWindow,QDialog,QMessageBox,QErrorMessage,QTableWidgetItem,QGraphicsScene,QGraphicsPixmapItem
+from PyQt5.QtWidgets import QApplication,QMainWindow,QDialog,QMessageBox,QErrorMessage,QTableWidgetItem,QGraphicsScene,QGraphicsPixmapItem,QHeaderView
 from PyQt5.QtGui import QPixmap
 
 import serial
@@ -144,6 +144,15 @@ class Management(QMainWindow,Ui_Management):
         self.tableWidget.setColumnWidth(3,200)
         self.tableWidget.setColumnWidth(4,100)
         self.tableWidget.setColumnWidth(5,100)
+        # 下面代码让表格100填满窗口
+        self.tableWidget.horizontalHeader().setStretchLastSection(True)
+        self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        #tablewidget选中函数槽
+        self.isn_chose_row = -1
+        #self.tableWidget.selectRow.connect(self.isn_chose)
+        self.tableWidget.clicked.connect(self.isn_chose)
+        #挂失函数槽
+        self.pushButton_6.clicked.connect(self.lose_isn)
         #加载搜索图标
 
         self.image = QPixmap()
@@ -165,24 +174,46 @@ class Management(QMainWindow,Ui_Management):
         self.pushButton_createSerialNum.clicked.connect(self.create_serialnum)
         self.pushButton_saveisn.clicked.connect(self.save_isn)
 
+    #挂失序列号
+    def lose_isn(self):
+        path = sys.path[0].__str__()
+        fp = open(path + '\\ISNS.csv', 'r', encoding = 'UTF-8')
+        ss = fp.readlines()
+        print(ss[self.isn_chose_row + 1])
+        ffp = open(path + '\\test.txt', 'w', encoding = 'UTF-8')
+        ffp.write(ss)
+        ffp.close()
+        fp.close()
+        pass
+
+    #tablewidget选中函数
+    def isn_chose(self):
+        self.isn_chose_row =  self.tableWidget.currentIndex().row()
+        pass
+
      #检索用户信息
     def search_isn(self):
         ll = []
         path = sys.path[0].__str__()
         fp = open(path + '\\ISNS.csv', 'r', encoding = 'UTF-8')
         ss = fp.readlines()
-        for i in ss:
-            if self.textEdit.toPlainText() in i:
-                ll.append(i)
-        self.tableWidget.clear()
-        self.tableWidget.setRowCount(len(ss) - 1)
+        ii = 1
+        while ii < len(ss):
+            str = re.sub("[\s+\,]","",ss[ii])
+            if str.find(self.textEdit.toPlainText(),0,len(str)) != -1:
+                ll.append(ss[ii])
+            ii += 1
+
+        length = len(ll)
+        self.tableWidget.setRowCount(length)
+
         #以,分割成列表 并显示到tableWidget上
         i =  0
-        while i < len(ss) - 1:
-            ss = ss[i + 1].strip(',').split(',')
+        while i < length :
+            sss = ll[i].strip(',').split(',')
             j = 0
-            while j < len(ss):
-                self.tableWidget.setItem(i, j, QTableWidgetItem(str(ss[j])))
+            while j < len(sss):
+                self.tableWidget.setItem(i, j, QTableWidgetItem(sss[j]))
                 j = j + 1
             i = i + 1
         pass
