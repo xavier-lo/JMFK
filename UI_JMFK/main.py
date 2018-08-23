@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 import sys
 import re
-sys.path.append('./UI/UI_Main.py')
+sys.path.append('./')
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication,QMainWindow,QDialog,QMessageBox,QErrorMessage,QTableWidgetItem,QGraphicsScene,QGraphicsPixmapItem,QHeaderView
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QApplication,QMainWindow,QDialog,QMessageBox,QErrorMessage,QTableWidgetItem,QGraphicsScene,QGraphicsPixmapItem,QHeaderView,QAbstractItemView
+from PyQt5.QtGui import QPixmap,QColor,QBrush
+from PyQt5.QtCore import pyqtSlot
 
+import threading
 import serial
+from Timer_Base import BaseTimer
+from operate_serialport import *
 
 import serial.tools.list_ports
 import datetime
@@ -19,6 +23,31 @@ from UI.UI_User import Ui_User
 COM_PORT =  None #串口
 SECTOR  =   None #扇区
 PASS    =   None #密码
+
+seri = serial.Serial(COM_PORT, 9600, timeout=0.5)
+date = [0x05, 0x06, 0x07]
+
+
+
+path = sys.path[0].__str__()
+gfp =open(path + '\\config', 'r')
+red = gfp.readlines()
+COM_PORT = red[0][4:int(len(red[0])) - 1]
+SECTOR = red[1][7:int(len(red[1]) - 1)]
+PASS = red[2][9:int(len(red[2]))]
+gfp.close()
+
+
+
+
+class TimerFunc(BaseTimer):
+    """可传递任何函数的定时任务类"""
+    def __init__(self,func,howtime=1.0,enduring=True):
+        BaseTimer.__init__(self,howtime,enduring)
+        self.func = func
+    def exec(self):
+        self.func() #调用函数
+
 
 class Main(QMainWindow,Ui_MainWindow):
     def __init__(self):
@@ -103,6 +132,8 @@ class Settings(QDialog,Ui_DialogSettinginterface):
 
 class Management(QMainWindow,Ui_Management):
     disp_checkbox = []
+
+    @pyqtSlot()
     def __init__(self):
         super(Management, self).__init__()
         self.setupUi(self)
@@ -145,9 +176,10 @@ class Management(QMainWindow,Ui_Management):
         self.tableWidget.setColumnWidth(4,100)
         self.tableWidget.setColumnWidth(5,100)
         # 下面代码让表格100填满窗口
-        self.tableWidget.horizontalHeader().setStretchLastSection(True)
-        self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        #self.tableWidget.horizontalHeader().setStretchLastSection(True)
+        #self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         #tablewidget选中函数槽
+        #self.tableWidget.setSelectionMode(QAbstractItemView.ExtendedSelection)  # 设置为可以选中多个目标
         self.isn_chose_row = -1
         #self.tableWidget.selectRow.connect(self.isn_chose)
         self.tableWidget.clicked.connect(self.isn_chose)
@@ -174,21 +206,47 @@ class Management(QMainWindow,Ui_Management):
         self.pushButton_createSerialNum.clicked.connect(self.create_serialnum)
         self.pushButton_saveisn.clicked.connect(self.save_isn)
 
+
+
+
     #挂失序列号
     def lose_isn(self):
-        path = sys.path[0].__str__()
-        fp = open(path + '\\ISNS.csv', 'r', encoding = 'UTF-8')
-        ss = fp.readlines()
-        print(ss[self.isn_chose_row + 1])
-        ffp = open(path + '\\test.txt', 'w', encoding = 'UTF-8')
-        ffp.write(ss)
-        ffp.close()
-        fp.close()
-        pass
+        if self.isn_chose_row == -1:
+            QMessageBox.warning(self, "input error", "请选择序列号", QMessageBox.Close)
+        else:
+            reply = QMessageBox.information(self, "warning", "确定要挂失吗？", QMessageBox.Yes | QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                path = sys.path[0].__str__()
+                fp = open(path + '\\ISNS.csv', 'r', encoding = 'UTF-8')
+                ss = fp.readlines()
+                if ss[self.isn_chose_row + 1][-4:-1] == "使用中" or ss[self.isn_chose_row + 1][-4:-1] == ",使用":
+                    strr = ''
+                    for i in range(len(ss[self.isn_chose_row + 1])):
+                        if i == 0:
+                            strr += '1'
+                        else:
+                            strr += ss[self.isn_chose_row + 1][i]
+                    strr = strr.replace("使用中","已挂失")
+                    ss[self.isn_chose_row + 1] = strr
+                    fp.close()
+                    ffp = open(path + '\\ISNS.csv', 'w', encoding = 'UTF-8')
+                    for iii in range(len(ss)):
+                        ss[iii] = ss[iii].replace(ss[iii][-14:-12],'^'+ ss[iii][-14:-12])
+                    ss = str(ss)
+                    ss = re.sub("[\s + \[ + \] + \']", "", ss)
+                    ss = ss.replace('\\n,','\n')
+                    ss = ss.replace('^', ' ')
+                    ffp.write(ss)
+                    ffp.close()
+                    self.display_isn()
+                    pass
+                elif ss[self.isn_chose_row + 1][-4:-1] == "已挂失" or ss[self.isn_chose_row + 1][-4:-1] == ",已挂":
+                    QMessageBox.warning(self, "input error", "已挂失", QMessageBox.Close)
 
     #tablewidget选中函数
     def isn_chose(self):
         self.isn_chose_row =  self.tableWidget.currentIndex().row()
+        self.tableWidget.selectRow(self.isn_chose_row)#整行选中
         pass
 
      #检索用户信息
@@ -213,7 +271,12 @@ class Management(QMainWindow,Ui_Management):
             sss = ll[i].strip(',').split(',')
             j = 0
             while j < len(sss):
-                self.tableWidget.setItem(i, j, QTableWidgetItem(sss[j]))
+                if j == 0:
+                    self.tableWidget.setItem(i, j, QTableWidgetItem('0' + sss[j][1:5]))
+                else:
+                    self.tableWidget.setItem(i, j, QTableWidgetItem(sss[j]))
+                if sss[j] == "已挂失" or sss[j] == "已挂失\n":
+                    self.tableWidget.item(i, j).setBackground(QBrush(QColor(255, 0, 0)))
                 j = j + 1
             i = i + 1
         pass
@@ -226,7 +289,17 @@ class Management(QMainWindow,Ui_Management):
             ss = fp.readlines()
             self.tableWidget.setRowCount(len(ss))
             sss = ss[len(ss) - 1].strip(',').split(',')
-            sss = '000' + str(int(sss[0]) + 1)
+            num = str(int(sss[0]) % 10000 +1)
+            if len(num) == 1:
+                sss = '0000' + num
+            if len(num) == 2:
+                sss = '000' + num
+            if len(num) == 3:
+                sss = '00' + num
+            if len(num) == 4:
+                sss = '0' + num
+            if len(num) >= 5:
+                sss = num
             self.tableWidget.setItem(len(ss) - 1, 0, QTableWidgetItem(sss))
             for i in range(1,3):
                 self.tableWidget.setItem(len(ss) -1,i,QTableWidgetItem('*'))
@@ -269,7 +342,6 @@ class Management(QMainWindow,Ui_Management):
     def display_isn(self):
         path = sys.path[0].__str__()
         fp = open(path + '\\ISNS.csv', 'r', encoding = 'UTF-8')
-
         cf = fp.readlines()
         self.tableWidget.setRowCount(len(cf) - 1)
         #以,分割成列表 并显示到tableWidget上
@@ -278,7 +350,12 @@ class Management(QMainWindow,Ui_Management):
             ss = cf[i + 1].strip(',').split(',')
             j = 0
             while j < len(ss):
-                self.tableWidget.setItem(i, j, QTableWidgetItem(str(ss[j])))
+                if j == 0:
+                    self.tableWidget.setItem(i, j, QTableWidgetItem('0' + str(ss[j][1:5])))
+                else:
+                    self.tableWidget.setItem(i, j, QTableWidgetItem( str(ss[j])))
+                if ss[j] == "已挂失" or ss[j] == "已挂失\n":
+                    self.tableWidget.item(i, j).setBackground(QBrush(QColor(255, 0, 0)))
                 j = j + 1
             i = i + 1
         fp.close()
@@ -436,7 +513,8 @@ class User(QMainWindow,Ui_User):
 
 
 
-
+def read_ICcard():
+    pass
 
 
 
@@ -446,12 +524,16 @@ def main():
     T   =   Management()
 #    S   =   Settings()
     M.show()
-
-
-
-
-
-
+    seri = ComThread(COM_PORT,19200,0.5)
+    try:
+        if seri.start():
+            print(seri.l_serial)
+            seri.waiting()
+            seri.SendDate(date)
+    except Exception as e:
+        print(str(e))
+    t = TimerFunc(read_ICcard)
+    t.start()
     sys.exit(app.exec())
 
 
