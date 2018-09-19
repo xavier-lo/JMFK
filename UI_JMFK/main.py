@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QApplication,QMainWindow,QDialog,QMessageBox,QErrorM
 from PyQt5.QtGui import QPixmap,QColor,QBrush
 from PyQt5.QtCore import pyqtSlot
 
+
 import threading
 import serial
 from Timer_Base import BaseTimer
@@ -19,23 +20,35 @@ from UI.UI_Settinginterface import Ui_DialogSettinginterface
 from UI.UI_ManageCard import Ui_Management
 from UI.UI_User import Ui_User
 
+from  time import sleep
+
 #全局变量
 COM_PORT =  None #串口
 SECTOR  =   None #扇区
 PASS    =   None #密码
 
-seri = serial.Serial(COM_PORT, 9600, timeout=0.5)
-date = [0x05, 0x06, 0x07]
+IC_NUM = []#IC序列号
+USERCARD_DATA = []#用户卡数据
+MANAGECARD_DATA = []#管理卡数据
 
 
 
 path = sys.path[0].__str__()
-gfp =open(path + '\\config', 'r')
+#gfp =open(path + '\\config', 'r')
+gfp = open('config', 'r')
 red = gfp.readlines()
 COM_PORT = red[0][4:int(len(red[0])) - 1]
 SECTOR = red[1][7:int(len(red[1]) - 1)]
 PASS = red[2][9:int(len(red[2]))]
 gfp.close()
+
+seri = serial.Serial()
+seri.port = COM_PORT
+seri.baudrate = 19200
+seek_card_date = [0xbe, 0x04, 0x00 ,0x00, 0x00, 0xe0]
+read_card_data_1 = [0xbe, 0x04, 0x01, 0x00, 0x00, 0xe0]#读一块数据
+read_card_data_2 = [0xbe, 0x04, 0x02, 0x00 ,0x00, 0xe0]#读俩块数据
+
 
 
 
@@ -49,6 +62,7 @@ class TimerFunc(BaseTimer):
         self.func() #调用函数
 
 
+
 class Main(QMainWindow,Ui_MainWindow):
     def __init__(self):
         super(Main, self).__init__()
@@ -60,6 +74,8 @@ class Main(QMainWindow,Ui_MainWindow):
         self.actionSetting_Interface.triggered.connect(self.setting)
         self.actionManagement_Card.triggered.connect(self.managementCard)
         self.actionUser_Card.triggered.connect(self.user)
+    #def closeEvent(self, a0: QtGui.QCloseEvent):
+
 
     def setting(self):
         self.child1.show()
@@ -189,7 +205,8 @@ class Management(QMainWindow,Ui_Management):
 
         self.image = QPixmap()
         path = sys.path[0].__str__()
-        self.image.load(path+ '\\search1.png')
+        #self.image.load(path+ '\\search1.png')
+        self.image.load('search1.png')
 
         #self.graphicsView.scene = QGraphicsScene()            # 创建一个图片元素的对象
         #item = QGraphicsPixmapItem(self.image)                # 创建一个变量用于承载加载后的图片
@@ -511,40 +528,65 @@ class User(QMainWindow,Ui_User):
 
 
 
+def make_verrify(*da):
+    ss = 0x00
+    i = 1
+    while i < da[0][1]:
+        ss ^= da[0][i]
+        i += 1
+    da[0][i] = ss
+
+
+def seek_ICCard():
+    make_verrify(seek_card_date)
+    seri.write(seek_card_date)
+    print('sending')
+    ss = seri.read(10)
 
 
 def read_ICcard():
+    USERCARD_DATA.clear()
+    read_card_data_1[3] =int(SECTOR) * 4 + 0
+    make_verrify(read_card_data_1)
+    seri.write(read_card_data_1)
+    ss = seri.read(22)
+    ss = list(ss)
+    for i in ss:
+        USERCARD_DATA.append(i)
+    read_card_data_2[3] = int(SECTOR) * 4 + 1
+    make_verrify(read_card_data_2)
+    seri.write(read_card_data_2)
+    ss = seri.read(38)
+    ss = list(ss)
+    for i in ss:
+        USERCARD_DATA.append(i)
+    print(USERCARD_DATA)
     pass
 
 
 
 def main():
+    seri.port = COM_PORT
+    seri.baudrate = 19200
+    print(seri)
+    seri.open()
+    print(seri.isOpen())
+    seek_ICCard()
+    t = TimerFunc(read_ICcard)
+    t.start()
     app =QApplication(sys.argv)
     M   =   Main()
     T   =   Management()
 #    S   =   Settings()
     M.show()
-    seri = ComThread(COM_PORT,19200,0.5)
-    try:
-        if seri.start():
-            print(seri.l_serial)
-            seri.waiting()
-            seri.SendDate(date)
-    except Exception as e:
-        print(str(e))
-    t = TimerFunc(read_ICcard)
-    t.start()
-    sys.exit(app.exec())
+    while(True):
+        if app.exec() is not True:
+            t.stop()
+            break
 
+    sys.exit()
 
 if __name__ == '__main__':
     main()
 
 
-'''
-    def test(self):
-        dgwindow = QDialog
-        dg = Ui_DialogSettinginterface()
-        dg.setupUi(dgwindow)
-        dgwindow.show()
-'''

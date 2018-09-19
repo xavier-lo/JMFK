@@ -1,0 +1,560 @@
+C51 COMPILER V9.56.0.0   STC_USER                                                          09/03/2018 15:34:29 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE STC_USER
+OBJECT MODULE PLACED IN .\Objects\STC_USER.obj
+COMPILER INVOKED BY: J:\Keil_v5\C51\BIN\C51.EXE STC_USER.C OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\
+                    -STC_USER.lst) TABS(2) OBJECT(.\Objects\STC_USER.obj)
+
+line level    source
+
+   1          ////**********************************////
+   2          //=================//
+   3          //本程序适用于
+   4          //用于JMFK-3 刷卡器
+   5          //MCU：stc89c55rd+
+   6          //晶振：29.4912MHz 震荡周期0.4069us 双倍速下载
+   7          //文件：STC_USER.C
+   8          //================//
+   9          ////**********************************////
+  10          #include <STC_USER.H>
+  11          #include <STC_INIT.H>
+  12          #include <stc_eeprom.h>
+  13          #include <intrins.h>
+  14          #include <operate_card.h>
+  15          #include <time_sd2200.h>
+  16          
+  17          #define max_id_amount 7000  //卡序列号最大数量
+  18          #define EEPROM_BASE_ADDR 0x8000 //eeprom基地址 stc89c52rc为 0x2000 stc89c55rd+为 0x8000
+  19          
+  20          /*****定义局部字节变量*****///
+  21          volatile unsigned char xdata eeprom_data[512];//eeprom扇区缓冲  
+  22          unsigned char IC_sector;//用户卡扇区
+  23          unsigned char IC_group;//用户卡群号
+  24          unsigned char IC_elv;//用户卡梯号
+  25          unsigned char xdata open_card_state = 0x00;
+  26          
+  27          //bit SA1,SA2,SA3;//地址码1 2 3 
+  28          
+  29          sbit SA1 = P0^3;
+  30          sbit SA2 = P0^2;
+  31          sbit SA3 = P0^1;
+  32          
+  33          /***/
+  34          
+  35          /*****定义局部位变量*****/
+  36          sbit T1_SEL = P1^0;
+  37          sbit T2_SEL = P1^1;
+  38          sbit T3_SEL = P1^2;
+  39          sbit T4_SEL = P1^3;
+  40          
+  41          sbit BEEP = P3^7;//蜂鸣器
+  42          /***/
+  43          
+  44          
+  45          /*全局变量定义*/
+  46          extern bit delay40ms_ready;
+  47          extern bit beep_start;
+  48          extern bit lamp_start;
+  49          
+  50          volatile bit delay_5s_start = 0;//用户卡有效5s开始
+  51          volatile bit delay_5s_stop = 0;//用户卡有效5s结束
+  52          volatile bit repeat_bit = 0;//重复读卡计数开始
+  53          volatile bit repeat_bit1 = 0;//重复读卡计数开始
+  54          volatile bit delay1s_ready = 0;//读取时间周期1s
+C51 COMPILER V9.56.0.0   STC_USER                                                          09/03/2018 15:34:29 PAGE 2   
+
+  55          
+  56          volatile unsigned char pre_IC_ISN[4];//防止短时间重复读卡 
+  57          volatile unsigned char pre_IC_ISN1[4];//防止短时间重复读卡
+  58          extern unsigned char t0_count2;
+  59          extern unsigned char t0_count4;
+  60          extern unsigned int t0_count3;
+  61          extern unsigned int t0_count6;
+  62          
+  63          /**/
+  64          
+  65          
+  66          /********************************/
+  67          /*name:                         */
+  68          /*discription:                  */
+  69          /*var in:                       */
+  70          /*result out:                   */
+  71          /********************************/
+  72          void action(void)
+  73          {
+  74   1        unsigned char xdata read_data[53];
+  75   1        unsigned char xdata user_card_data[69];
+  76   1        unsigned int de_count=0;
+  77   1        unsigned char function_count = 0;//
+  78   1        unsigned char xdata now_date[3],now_time[2],week;
+  79   1        pre_IC_ISN1[0] = 0;
+  80   1        pre_IC_ISN1[1] = 0;
+  81   1        pre_IC_ISN1[2] = 0;
+  82   1        pre_IC_ISN1[3] = 0; 
+  83   1        pre_IC_ISN[0] = 0;
+  84   1        pre_IC_ISN[1] = 0;
+  85   1        pre_IC_ISN[2] = 0;
+  86   1        pre_IC_ISN[3] = 0;    
+  87   1      
+  88   1        arrayread_overwirte(EEPROM_BASE_ADDR, 9, eeprom_data);//读取短路点数据
+  89   1        output_control(eeprom_data);
+  90   1        while(1)
+  91   1        { 
+  92   2          if(delay40ms_ready)
+  93   2          {
+  94   3            delay40ms_ready = 0;
+  95   3            function_count++;
+  96   3            if(function_count > 4) function_count = 0;
+  97   3            switch(function_count)
+  98   3            {
+  99   4              case 0://寻管理卡 管理卡统一定义在IC卡0扇区开始
+ 100   4                operate_managmentcard(read_data,now_date,now_time,week);
+ 101   4                break;
+ 102   4              case 2://寻用户卡 用户卡扇区号由用户定义写入到mcu eeprom
+ 103   4                operate_usercard(user_card_data,now_date,now_time);
+ 104   4                break;
+ 105   4            }
+ 106   3          }else if(delay1s_ready)
+ 107   2          {//读时间
+ 108   3            delay1s_ready = 0;
+ 109   3            if(read_time(read_data) == 1)
+ 110   3            {
+ 111   4              now_date[0] = read_data[0];//年
+ 112   4              now_date[1] = read_data[1] & 0x1f;//月
+ 113   4              now_date[2] = read_data[2] & 0x3f;//日
+ 114   4              week        = read_data[3] & 0x07;//周
+ 115   4              now_time[0] = read_data[4] & 0x3f;//时
+ 116   4              now_time[1] = read_data[5] & 0x7f;//分  
+C51 COMPILER V9.56.0.0   STC_USER                                                          09/03/2018 15:34:29 PAGE 3   
+
+ 117   4            }
+ 118   3          }
+ 119   2          
+ 120   2          if(delay_5s_stop)
+ 121   2          {//用户卡有效结束
+ 122   3            delay_5s_stop = 0;
+ 123   3            arrayread_overwirte(EEPROM_BASE_ADDR,8,eeprom_data);//
+ 124   3            output_control(&eeprom_data[4*0]);    
+ 125   3          }
+ 126   2          
+ 127   2          WDT_CONTR = 0x3f;//喂狗 
+ 128   2        }
+ 129   1        
+ 130   1      }
+ 131          
+ 132          
+ 133          /****************************************/
+ 134          /*name:check_time                       */
+ 135          /*discription:检查时间是否有效          */
+ 136          /*var in:年月日时间（范围时间 现在时间）*/
+ 137          /*result out:状态                       */
+ 138          /****************************************/
+ 139          bit check_time(unsigned char xdata *bg_dt, unsigned char xdata *ed_dt, unsigned char xdata *bg_t0,
+ 140                          unsigned char xdata *ed_t0,unsigned char xdata *bg_t1, unsigned char xdata *ed_t1,  
+ 141                          unsigned char xdata *bg_t2,unsigned char xdata *ed_t2,unsigned char *now_dt, unsigned char xdata *
+             -now_t)
+ 142          {
+ 143   1        unsigned char xdata t_sta = 0xff;
+ 144   1        unsigned long xdata bg_date,ed_date,now_date;
+ 145   1        unsigned int xdata bg_time0,bg_time1,bg_time2,ed_time0,ed_time1,ed_time2,now_time;
+ 146   1        
+ 147   1        bg_date = (((unsigned long)bg_dt[0] << 16) & 0xff0000) + (((unsigned long)bg_dt[1] << 8) & 0xff00) + bg_d
+             -t[2];
+ 148   1        ed_date = (((unsigned long)ed_dt[0] << 16) & 0xff0000) + (((unsigned long)ed_dt[1] << 8) & 0xff00) + ed_d
+             -t[2];
+ 149   1        now_date = (((unsigned long)now_dt[0] << 16) & 0xff0000) + (((unsigned long)now_dt[1] << 8) & 0xff00) + n
+             -ow_dt[2];    
+ 150   1        
+ 151   1        //判断日期
+ 152   1        if((now_date < bg_date) || (now_date > ed_date)) return 0;
+ 153   1        
+ 154   1        bg_time0 = ((unsigned int)(bg_t0[0] << 8) & 0xff00) + bg_t0[1];
+ 155   1        bg_time1 = ((unsigned int)(bg_t1[0] << 8) & 0xff00) + bg_t1[1];
+ 156   1        bg_time2 = ((unsigned int)(bg_t2[0] << 8) & 0xff00) + bg_t2[1];
+ 157   1        ed_time0 = ((unsigned int)(ed_t0[0] << 8) & 0xff00) + ed_t0[1];
+ 158   1        ed_time1 = ((unsigned int)(ed_t1[0] << 8) & 0xff00) + ed_t1[1];
+ 159   1        ed_time2 = ((unsigned int)(ed_t2[0] << 8) & 0xff00) + ed_t2[1];
+ 160   1        now_time = ((unsigned int)(now_t[0] << 8) & 0xff00) + now_t[1]; 
+ 161   1        
+ 162   1        //判断时间
+ 163   1        t_sta = 0x00;
+ 164   1        if((now_time < bg_time0) || (now_time > ed_time0)) t_sta |= 0x01;
+ 165   1        if((now_time < bg_time1) || (now_time > ed_time1)) t_sta |= 0x02;
+ 166   1        if((now_time < bg_time2) || (now_time > ed_time2)) t_sta |= 0x04;
+ 167   1        
+ 168   1        if(t_sta == 0x07 ) return 0;
+ 169   1        return 1;
+ 170   1      }
+ 171          
+ 172          
+ 173          /********************************/
+ 174          /*name:   seek_eeprom_isn       */
+C51 COMPILER V9.56.0.0   STC_USER                                                          09/03/2018 15:34:29 PAGE 4   
+
+ 175          /*discription: 比对isn是否有效  */
+ 176          /*var in:   isn 需要检查的isn   */
+ 177          /*result out: 检查状态          */
+ 178          /********************************/
+ 179          bit seek_eeprom_isn(unsigned int id_num, unsigned char xdata *isn)
+ 180          {
+ 181   1      //  unsigned int xdata i = 0;
+ 182   1        unsigned char xdata read_isn[4];
+ 183   1      //  while(i < max_id_amount)
+ 184   1      //  {
+ 185   1          arrayread_overwirte(EEPROM_BASE_ADDR + 0x200 + 4 * id_num,4,read_isn);  
+ 186   1          if((isn[0] == read_isn[0]) && (isn[1] == read_isn[1]) && (isn[2] == read_isn[2]) && (isn[3] == read_isn[
+             -3]))
+ 187   1            return 1;
+ 188   1      //    i++;
+ 189   1      //  }
+ 190   1        return 0;
+ 191   1      }
+ 192          
+ 193          
+ 194          /********************************/
+ 195          /*name: operate_usercard        */
+ 196          /*discription:用户卡操作        */
+ 197          /*var in:   rd_da 缓存数据      */
+ 198          /*var in:   now_dat 实时日期    */
+ 199          /*var in:   now_tim 实时时间    */
+ 200          /*result out:                   */
+ 201          /********************************/
+ 202          void operate_usercard(unsigned char xdata *rd_da,unsigned char xdata *now_dat, unsigned char xdata *now_ti
+             -m)
+ 203          {
+ 204   1        unsigned char xdata ii;
+ 205   1        /*有效开始日期 有效结束日期 有效开始时间0 1 2 有效结束时间0 1 2 有效次数*/
+ 206   1        unsigned char xdata begin_date[3],end_date[3],begin_time0[2],end_time0[2],begin_time1[2],end_time1[2],beg
+             -in_time2[2],end_time2[2];
+ 207   1        unsigned long xdata valid_count;
+ 208   1        unsigned char xdata temp_data[25];
+ 209   1        bit test_bit = 0;
+ 210   1        /*读序列号块*/
+ 211   1        if(read_user_card(IC_sector,rd_da) == 1)
+ 212   1        {   
+ 213   2          if((pre_IC_ISN1[0] != rd_da[36])||(pre_IC_ISN1[1] != rd_da[37])||(pre_IC_ISN1[2] != rd_da[38])||(pre_IC_
+             -ISN1[3] != rd_da[39]))
+ 214   2          {//防止重复读取
+ 215   3            ii = 0;
+ 216   3            while(ii<4)
+ 217   3            {
+ 218   4              pre_IC_ISN1[ii] = rd_da[36 + ii];
+ 219   4              ii++;
+ 220   4            } 
+ 221   3            repeat_bit1 = 1;//重复刷卡计数开始
+ 222   3            
+ 223   3            if(!seek_eeprom_isn((((unsigned int)rd_da[6] << 8) & 0xff00) + rd_da[7],&rd_da[36])) return;//检查isn是
+             -否有效 无效直接退出函数
+ 224   3            
+ 225   3            ii = 0;
+ 226   3            while(ii < 3)
+ 227   3            {//保存有效结束日期
+ 228   4              begin_date[ii] = ((rd_da[40 + 2 * ii] << 4) & 0xf0) | (rd_da[41 + 2 * ii] & 0x0f);
+ 229   4              end_date[ii] = ((rd_da[46 + 2 * ii] << 4) & 0xf0) | (rd_da[47 + 2 * ii] & 0x0f);
+ 230   4              ii++;
+ 231   4            }
+C51 COMPILER V9.56.0.0   STC_USER                                                          09/03/2018 15:34:29 PAGE 5   
+
+ 232   3            ii = 0;
+ 233   3            while(ii < 2)
+ 234   3            {//保存有效开始时间012 结束时间012
+ 235   4              begin_time0[ii] = rd_da[52 + ii];
+ 236   4              begin_time1[ii] = rd_da[56 + ii];
+ 237   4              begin_time2[ii] = rd_da[60 + ii];
+ 238   4              end_time0[ii] = rd_da[54 + ii]; 
+ 239   4              end_time1[ii] = rd_da[58 + ii];
+ 240   4              end_time2[ii] = rd_da[62 + ii]; 
+ 241   4              ii++;
+ 242   4            }
+ 243   3            //保存有效次数
+ 244   3            valid_count = (((unsigned long)rd_da[64] << 24) & 0xff000000) + (((unsigned long)rd_da[65] << 16) & 0xf
+             -f0000) + (((unsigned long)rd_da[66] << 8) & 0xff00) + rd_da[67];
+ 245   3      
+ 246   3            //保存（n + 1）* 4 + 1块数据 
+ 247   3            ii = 0;
+ 248   3            while(ii < 16)
+ 249   3            {
+ 250   4              temp_data[8 + ii] = rd_da[52 + ii];
+ 251   4              ii++;
+ 252   4            }
+ 253   3      
+ 254   3            /*检查时间是否有效*/
+ 255   3            if(check_time(begin_date,end_date,begin_time0,end_time0,begin_time1,end_time1,begin_time2,end_time2,now
+             -_dat,now_tim) == 0) return;
+ 256   3      
+ 257   3            if((rd_da[5] == (((IC_group << 5) & 0xe0)|(IC_elv&0x1f))) ||(rd_da[5] == ((IC_group << 5) & 0xe0)) || (
+             -rd_da[5] == 0))
+ 258   3            {//群号 梯号相等 或群号相等梯号为0  或群号梯号为0
+ 259   4      
+ 260   4              if((rd_da[4] & 0x10) == 0x10)//次卡
+ 261   4              {
+ 262   5                if(valid_count <= 0) return;//次数为0退出
+ 263   5      
+ 264   5                valid_count -= 1;
+ 265   5                temp_data[20] = (valid_count >> 24) & 0xff;
+ 266   5                temp_data[21] = (valid_count >> 16) & 0xff;
+ 267   5                temp_data[22] = (valid_count >> 8) & 0xff;
+ 268   5                temp_data[23] = valid_count & 0xff;
+ 269   5                //次数写回IC卡
+ 270   5                if(write_card((IC_sector + 1) * 4 + 1, temp_data) != 1) return;//未写成功退出
+ 271   5              }
+ 272   4              
+ 273   4              if((rd_da[4] & 0xe0) == 0)//用户卡 刷卡保持5s             
+ 274   4              {
+ 275   5                /*输出至控制点 短路点*/
+ 276   5                arrayread_overwirte(EEPROM_BASE_ADDR,8,eeprom_data);//
+ 277   5                ii = 0;
+ 278   5                while(ii < 8)
+ 279   5                {
+ 280   6                  rd_da[20 + ii] = rd_da[20 + ii] | eeprom_data[ii];
+ 281   6                  ii++;
+ 282   6                }
+ 283   5                output_control(&rd_da[20]);
+ 284   5                beep_start = 1;
+ 285   5                lamp_start = 1;
+ 286   5                delay_5s_start = 1;
+ 287   5                t0_count3 = 0;
+ 288   5                t0_count6 = 0;
+ 289   5                open_card_state = 0x00;//用户卡清零
+ 290   5              }else if((rd_da[4] & 0xe0) == 0x80)//用户开关卡 刷完即刻反向输出 
+C51 COMPILER V9.56.0.0   STC_USER                                                          09/03/2018 15:34:29 PAGE 6   
+
+ 291   4              {
+ 292   5                /*输出至控制点 短路点*/
+ 293   5                open_card_state = ~open_card_state;
+ 294   5                arrayread_overwirte(EEPROM_BASE_ADDR,8,eeprom_data);//
+ 295   5                ii = 0;
+ 296   5                while(ii < 8)
+ 297   5                {
+ 298   6                  rd_da[20 + ii] = (rd_da[20 + ii] & open_card_state) | eeprom_data[ii];
+ 299   6                  ii++;
+ 300   6                }
+ 301   5                output_control(&rd_da[20]);
+ 302   5                beep_start = 1;
+ 303   5                lamp_start = 1;
+ 304   5                t0_count6 = 0;
+ 305   5              }         
+ 306   4            }     
+ 307   3            
+ 308   3          } 
+ 309   2        }else
+ 310   1        {//无卡清掉序列号
+ 311   2            t0_count4 = 0;
+ 312   2            repeat_bit1 = 0;
+ 313   2            pre_IC_ISN1[10]=0;
+ 314   2            pre_IC_ISN1[1]=0;
+ 315   2            pre_IC_ISN1[2]=0;
+ 316   2            pre_IC_ISN1[3]=0;
+ 317   2        } 
+ 318   1      
+ 319   1      }
+ 320          
+ 321          
+ 322          /********************************/
+ 323          /*name: operate_managmentcard   */
+ 324          /*discription:管理卡操作        */
+ 325          /*var in: rd_da 缓存数据        */
+ 326          /*var in: now_date 日期         */
+ 327          /*var in: now_time 时间         */
+ 328          /*result out:                   */
+ 329          /********************************/
+ 330          void operate_managmentcard(unsigned char xdata *rd_da, unsigned char xdata *now_date, unsigned char xdata 
+             -*now_time, unsigned char wk)
+ 331          {
+ 332   1        unsigned int xdata ii,jj,kk;//用于计数
+ 333   1        unsigned int xdata IC_eeprom_addr,IC_Byte_num;
+ 334   1      
+ 335   1        if(read_card(0x00,rd_da) == 1)
+ 336   1        {
+ 337   2          if((pre_IC_ISN[0] != rd_da[0])||(pre_IC_ISN[1] != rd_da[1])||(pre_IC_ISN[2] != rd_da[2])||(pre_IC_ISN[3]
+             - != rd_da[3]))
+ 338   2          {//防止重复读取
+ 339   3            ii = 0;
+ 340   3            while(ii<4)
+ 341   3            {
+ 342   4              pre_IC_ISN[ii] = rd_da[ii];
+ 343   4              ii++;
+ 344   4            } 
+ 345   3            repeat_bit = 1;//重复刷卡计数开始
+ 346   3            IC_eeprom_addr = ((((unsigned int)rd_da[22] <<8) & 0xff00) | rd_da[23]);//获取需要写入eeprom地址
+ 347   3            IC_Byte_num = ((((unsigned int)rd_da[24] <<8) & 0xff00) | rd_da[25]);//获取需要写入序列号长度
+ 348   3            if((rd_da[20] & 0x60) == 0x40)//写管理卡短路点
+ 349   3            {
+ 350   4              open_card_state = 0x00;//管理卡清零
+C51 COMPILER V9.56.0.0   STC_USER                                                          09/03/2018 15:34:29 PAGE 7   
+
+ 351   4              
+ 352   4              sectorerase(IC_eeprom_addr);//擦除扇区
+ 353   4              if(arrywrite_overwrite(IC_eeprom_addr,8,&rd_da[44]) == 1)//写入短路点 
+ 354   4              {
+ 355   5                if(!SA1)
+ 356   5                { //写入群号 梯号 用户卡扇区号                
+ 357   6                  if(arrywrite_overwrite(IC_eeprom_addr+8,2,&rd_da[26]) == 1)
+ 358   6                  {
+ 359   7                    beep_start = 1;
+ 360   7                    lamp_start = 1;
+ 361   7                    t0_count6 = 0;              
+ 362   7                  }                     
+ 363   6                }else
+ 364   5                    {   
+ 365   6                      eeprom_data[0] = ((IC_group << 5) & 0xe0)|(IC_elv&0x1f);
+ 366   6                      eeprom_data[1] = IC_sector;
+ 367   6                      beep_start = 1;
+ 368   6                      lamp_start = 1;
+ 369   6                      t0_count6 = 0;
+ 370   6                      if(arrywrite_overwrite(IC_eeprom_addr+8,2,eeprom_data) == 1);                       
+ 371   6                    }         
+ 372   5                /*输出至短路点*/
+ 373   5                arrayread_overwirte(EEPROM_BASE_ADDR,8,eeprom_data);//
+ 374   5                output_control(&eeprom_data[4*0]);
+ 375   5              }             
+ 376   4            }
+ 377   3            if((rd_da[20] & 0x60) == 0x60)//写序列号
+ 378   3            {
+ 379   4              open_card_state = 0x00;//管理卡清零
+ 380   4              
+ 381   4              /*获取IC卡序列号*/
+ 382   4              if(IC_Byte_num < 128)//长度必须小于128
+ 383   4              {
+ 384   5                jj = IC_Byte_num / 12;
+ 385   5                if((IC_Byte_num % 12) != 0) jj += 1;
+ 386   5                ii = 0;         
+ 387   5                while(ii+1 < jj+1)//从ic卡第2扇区开始读出
+ 388   5                {
+ 389   6                  if(read_card(ii + 1,rd_da) != 1)
+ 390   6                  {//发现某一扇区未读出退出
+ 391   7                    t0_count2 = 0;
+ 392   7                    repeat_bit = 0;
+ 393   7                    pre_IC_ISN[0]=0;
+ 394   7                    pre_IC_ISN[1]=0;
+ 395   7                    pre_IC_ISN[2]=0;
+ 396   7                    pre_IC_ISN[3]=0;  
+ 397   7                    return ;
+ 398   7                  }
+ 399   6                  kk = 0;
+ 400   6                  while(kk < 48)
+ 401   6                  {
+ 402   7                    eeprom_data[48 * ii + kk] = rd_da[4 + kk];
+ 403   7                    kk++;
+ 404   7                  }
+ 405   6                  ii++;
+ 406   6                }     
+ 407   5                sectorerase(IC_eeprom_addr);//擦除扇区
+ 408   5                if(arrywrite_overwrite(IC_eeprom_addr,IC_Byte_num*4,eeprom_data) == 1)
+ 409   5                {
+ 410   6                    beep_start = 1;
+ 411   6                    lamp_start = 1;
+ 412   6                    t0_count6 = 0;
+C51 COMPILER V9.56.0.0   STC_USER                                                          09/03/2018 15:34:29 PAGE 8   
+
+ 413   6                }
+ 414   5              }
+ 415   4            } 
+ 416   3            if((rd_da[20] & 0x4c) == 0x48)//读时间芯片时间
+ 417   3            {
+ 418   4              rd_da[36] = now_date[0];
+ 419   4              rd_da[37] = now_date[1];
+ 420   4              rd_da[38] = now_date[2];
+ 421   4              rd_da[39] = wk;
+ 422   4              rd_da[40] = now_time[0];  
+ 423   4              rd_da[41] = now_time[1];          
+ 424   4              if(write_card( 0x02, &rd_da[28]) != 1) return;//未写成功退出
+ 425   4              beep_start = 1;
+ 426   4              lamp_start = 1;
+ 427   4              t0_count6 = 0;
+ 428   4            }
+ 429   3            if((rd_da[20] & 0x4c) == 0x44)//写时间到时间芯片 
+ 430   3            {
+ 431   4              if(set_time(&rd_da[36]) == 1)
+ 432   4              {
+ 433   5                beep_start = 1;
+ 434   5                lamp_start = 1;
+ 435   5                t0_count6 = 0;        
+ 436   5              }         
+ 437   4            }       
+ 438   3          }
+ 439   2        }else
+ 440   1        {//无卡清掉序列号
+ 441   2            t0_count2 = 0;
+ 442   2            repeat_bit = 0;
+ 443   2            pre_IC_ISN[0]=0;
+ 444   2            pre_IC_ISN[1]=0;
+ 445   2            pre_IC_ISN[2]=0;
+ 446   2            pre_IC_ISN[3]=0;  
+ 447   2        }   
+ 448   1      }
+ 449          
+ 450          
+ 451          /**********************************************************/
+ 452          /*name:read_eeprom                                        */
+ 453          /*discription:开机读取扇区号 群号 梯号 短路点并输出至接口 */
+ 454          /*var in:                                                 */
+ 455          /*result out:                                             */
+ 456          /**********************************************************/
+ 457          void read_eeprom(void)
+ 458          {
+ 459   1        arrayread_overwirte(EEPROM_BASE_ADDR,10,eeprom_data);//
+ 460   1        IC_sector = eeprom_data[9]; //用户卡扇区号
+ 461   1        IC_group = ((eeprom_data[8] >> 5) & 0x07);//群号
+ 462   1        IC_elv = (eeprom_data[8] & 0x1f);//梯号
+ 463   1        output_control(&eeprom_data[4*0]);
+ 464   1      }
+ 465          
+ 466          
+ 467          
+ 468          /********************************/
+ 469          /*name: output_control          */
+ 470          /*discription:输出控制到74hc373 */
+ 471          /*var in:da 控制数据 4字节      */
+ 472          /*result out:                   */
+ 473          /********************************/
+ 474          void output_control(unsigned char xdata  *da )
+C51 COMPILER V9.56.0.0   STC_USER                                                          09/03/2018 15:34:29 PAGE 9   
+
+ 475          {
+ 476   1          /*先锁住*/
+ 477   1          T1_SEL  = 0;
+ 478   1          T2_SEL  = 0;
+ 479   1          T3_SEL  = 0;
+ 480   1          T4_SEL  = 0;
+ 481   1          /*变化数据1*/
+ 482   1          P2  = da[0];
+ 483   1          _nop_();  
+ 484   1          T1_SEL  = 1;
+ 485   1          _nop_();
+ 486   1          T1_SEL  = 0;
+ 487   1          /*变化数据2*/
+ 488   1          P2  = da[1];  
+ 489   1          _nop_();
+ 490   1          T2_SEL  = 1;
+ 491   1          _nop_();
+ 492   1          T2_SEL  = 0;
+ 493   1          /*变化数据3*/
+ 494   1          P2  = da[2];
+ 495   1          _nop_();  
+ 496   1          T3_SEL  = 1;
+ 497   1          _nop_();
+ 498   1          T3_SEL  = 0;
+ 499   1          /*变化数据4*/
+ 500   1          P2  = da[3];  
+ 501   1          _nop_();    
+ 502   1          T4_SEL  = 1;
+ 503   1          _nop_();
+ 504   1          T4_SEL  = 0;  
+ 505   1      }
+ 506          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   3458    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =    513     217
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     11      39
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      5       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

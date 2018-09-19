@@ -1,0 +1,804 @@
+C51 COMPILER V9.56.0.0   OPERATE_CARD                                                      09/03/2018 15:34:29 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE OPERATE_CARD
+OBJECT MODULE PLACED IN .\Objects\operate_card.obj
+COMPILER INVOKED BY: J:\Keil_v5\C51\BIN\C51.EXE operate_card.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listi
+                    -ngs\operate_card.lst) TABS(2) OBJECT(.\Objects\operate_card.obj)
+
+line level    source
+
+   1          ////**********************************////
+   2          //=================//
+   3          //本程序适用于
+   4          //用于JMFK-3 刷卡器
+   5          //MCU：stc89c55rd+
+   6          //晶振：29.4912MHz 震荡周期0.4069us 双倍速下载
+   7          //文件：operate_card.C
+   8          //此文件使用单片机外设串口1
+   9          //================//
+  10          #include <operate_card.h>
+  11          
+  12          #define card_delay 12000
+  13          
+  14          sbit BEEP = P3^7;//蜂鸣器
+  15          
+  16          sbit TEST = P1^4;
+  17          
+  18          /**********************************/
+  19          /*name:make_verr                  */
+  20          /*discription:产生校验            */
+  21          /*var in:da0 需要生成的数据列     */
+  22          /*result out: da0 生成后的数据列  */
+  23          /**********************************/
+  24          void make_verr(unsigned char *da0)
+  25          {
+  26   1        unsigned char i = 0, verr = 0;
+  27   1        verr = da0[2];
+  28   1        i = 3;
+  29   1        while(i <= da0[2]+1)
+  30   1        {
+  31   2          verr ^= da0[i];
+  32   2          i++;
+  33   2        }
+  34   1        da0[i] = verr;
+  35   1      }
+  36          
+  37          /********************************/
+  38          /*name: verrify                 */
+  39          /*discription:校验接收数据      */
+  40          /*var in:da0 需要校验的数据     */
+  41          /*result out:bool 状态          */
+  42          /********************************/
+  43          bit verrify(unsigned char *da0)
+  44          {
+  45   1        bit states = 0;
+  46   1        unsigned char ver_da = 0, i = 0;
+  47   1        if(da0[0] == 0xaa)
+  48   1        {
+  49   2          if(da0[1] == 0x55)
+  50   2          {     
+  51   3            i = 3;
+  52   3            ver_da = da0[2];
+  53   3            while(i < da0[2]+3)
+  54   3            {
+C51 COMPILER V9.56.0.0   OPERATE_CARD                                                      09/03/2018 15:34:29 PAGE 2   
+
+  55   4              ver_da ^= da0[i];//异或校验数据
+  56   4              i++;
+  57   4            }
+  58   3            if(ver_da == 0)//结果为0校验成功
+  59   3              states = 1;
+  60   3          }   
+  61   2        }
+  62   1        return states;
+  63   1      }
+  64          
+  65          
+  66          /**********************************************/
+  67          /*name:seek_card                              */
+  68          /*discription:寻卡                            */
+  69          /*var in:                                     */
+  70          /*result out:recive_da 返回数据 传入必须9字节 */
+  71          /**********************************************/
+  72          char seek_card(unsigned char *recive_da)
+  73          {
+  74   1        char state  = 0;
+  75   1        unsigned char i = 0;
+  76   1        unsigned int recive_count = 0;
+  77   1        /*
+  78   1        发送寻卡数据到卡头
+  79   1        6个字节
+  80   1        */
+  81   1      
+  82   1        recive_da[0]=0xaa;
+  83   1        recive_da[1]=0x55;
+  84   1        recive_da[2]=0x03;
+  85   1        recive_da[3]=0x20;
+  86   1        recive_da[4]=0x00;  
+  87   1        
+  88   1        make_verr(recive_da);//生成校验字
+  89   1        i = 0;
+  90   1        while(i < 6)//发送
+  91   1        {
+  92   2          TI = 0;
+  93   2          SBUF = recive_da[i];
+  94   2          i++;
+  95   2          while(!TI); 
+  96   2        }
+  97   1        RI = 0;
+  98   1        REN = 1;
+  99   1        i = 0;  
+ 100   1        
+ 101   1        while(i < 9)//接收数据最多接收9个字节
+ 102   1        { 
+ 103   2          recive_count  = 0;      
+ 104   2          while(!RI)
+ 105   2          {
+ 106   3            recive_count++;
+ 107   3            if(recive_count>=card_delay)
+ 108   3            {
+ 109   4              REN = 0;
+ 110   4              return state;//超时退出
+ 111   4            }
+ 112   3          }
+ 113   2          recive_da[i] = SBUF;
+ 114   2          RI  = 0;    
+ 115   2          i++;    
+ 116   2        }
+C51 COMPILER V9.56.0.0   OPERATE_CARD                                                      09/03/2018 15:34:29 PAGE 3   
+
+ 117   1        
+ 118   1        if((verrify(recive_da) == 1)&&(recive_da[2] == 0x06))//校验接收数据
+ 119   1        {
+ 120   2            state = 1;//置位成功状态
+ 121   2        }
+ 122   1        REN = 0;
+ 123   1        return state;
+ 124   1      }
+ 125          
+ 126          /******************************************/
+ 127          /*name: write_card                        */
+ 128          /*discription:写数据到块使用卡头密码      */
+ 129          /*var in:block 块号                       */
+ 130          /*var in:da 需要写的数据16字节传入25字节  */
+ 131          /*result out:state 写卡状态               */
+ 132          /******************************************/
+ 133          bit write_card(unsigned char block,unsigned char *da)
+ 134          {
+ 135   1        unsigned char i = 0, seek_data[9];
+ 136   1        unsigned int recive_count = 0 ;
+ 137   1        bit state = 0 ;
+ 138   1      
+ 139   1        /*寻卡*/
+ 140   1        if(seek_card(seek_data) ==  0)
+ 141   1        {
+ 142   2          return state;//无卡退出
+ 143   2        }
+ 144   1        
+ 145   1        /*
+ 146   1        填充数据到发送区
+ 147   1        */
+ 148   1        da[0] = 0xaa;
+ 149   1        da[1] = 0x55;
+ 150   1        da[2] = 0x16;
+ 151   1        da[3] = 0x22;
+ 152   1        da[4] = 0x02;
+ 153   1        da[5] = block;
+ 154   1        da[6] = 0x80;
+ 155   1        da[7] = 0x00;
+ 156   1      
+ 157   1        make_verr(da);//生成校验
+ 158   1        
+ 159   1        /* 发送 */
+ 160   1        i = 0;
+ 161   1        while(i < 25)
+ 162   1        {
+ 163   2          recive_count  = 0;
+ 164   2          TI = 0;
+ 165   2          SBUF = da[i];
+ 166   2          i++;
+ 167   2          while(!TI)
+ 168   2          {
+ 169   3            recive_count++;
+ 170   3            if(recive_count >= card_delay/6 ) return 0;//超时退出
+ 171   3          } 
+ 172   2        } 
+ 173   1        /*
+ 174   1        接收返回状态
+ 175   1        */
+ 176   1        RI = 0;
+ 177   1        i = 0;
+ 178   1        REN = 1;
+C51 COMPILER V9.56.0.0   OPERATE_CARD                                                      09/03/2018 15:34:29 PAGE 4   
+
+ 179   1        while(i < 5)//接收数据最多接收5个字节
+ 180   1        { 
+ 181   2          recive_count  = 0;      
+ 182   2          while(!RI)
+ 183   2          {
+ 184   3            recive_count++;
+ 185   3            if(recive_count>=card_delay) 
+ 186   3            {
+ 187   4              REN=0;
+ 188   4              return state;//超时退出
+ 189   4            }
+ 190   3          }
+ 191   2          da[i] = SBUF;
+ 192   2          RI  = 0;    
+ 193   2          i++;
+ 194   2          
+ 195   2        }
+ 196   1        if((verrify(da) == 1)&&(da[3] == 0x22))//校验接收数据
+ 197   1        {
+ 198   2            state = 1;//置位成功状态
+ 199   2        }
+ 200   1        REN = 0;  
+ 201   1        return state;
+ 202   1      }
+ 203          
+ 204          
+ 205          
+ 206          /********************************/
+ 207          /*name:read_card_1block         */
+ 208          /*discription:读出1块数据       */
+ 209          /*var in:读出16字节 传入21字节  */
+ 210          /*result out:                   */
+ 211          /********************************/
+ 212          bit read_card_1block(unsigned char block,unsigned char *out)
+ 213          {
+ 214   1        unsigned char i = 0;
+ 215   1        unsigned int recive_count1 = 0;
+ 216   1        unsigned char seek_data[9];
+ 217   1        bit state = 0 ;
+ 218   1        /*寻卡*/
+ 219   1        if(seek_card(seek_data) ==  0)
+ 220   1        {
+ 221   2          return state;//无卡退出
+ 222   2        }
+ 223   1        /*
+ 224   1        填充数据到发送区
+ 225   1        */
+ 226   1        out[0]  = 0xaa;
+ 227   1        out[1]  = 0x55;
+ 228   1        out[2]  = 0x06;
+ 229   1        out[3]  = 0x21;
+ 230   1        out[4]  = 0x02;
+ 231   1        out[5]  = block;
+ 232   1        out[6]  = 0x80;
+ 233   1        out[7]  = 0x00; 
+ 234   1        make_verr(out);//生成校验
+ 235   1        
+ 236   1        /*发送*/
+ 237   1        i = 0;
+ 238   1        while(i < 9)
+ 239   1        {
+ 240   2          TI = 0;
+C51 COMPILER V9.56.0.0   OPERATE_CARD                                                      09/03/2018 15:34:29 PAGE 5   
+
+ 241   2          SBUF = out[i];
+ 242   2          i++;
+ 243   2          while(!TI); 
+ 244   2        } 
+ 245   1        /*
+ 246   1        接收返回状态
+ 247   1        */
+ 248   1        RI = 0;
+ 249   1        i = 0;
+ 250   1        REN = 1;
+ 251   1        while(i < 21)//接收数据最多接收21个字节
+ 252   1        { 
+ 253   2          recive_count1 = 0;      
+ 254   2          while(!RI)
+ 255   2          {
+ 256   3            recive_count1++;
+ 257   3            if(recive_count1>=card_delay)
+ 258   3            {
+ 259   4              REN=0;
+ 260   4              return state;//超时退出
+ 261   4            }
+ 262   3          }
+ 263   2          out[i] = SBUF;
+ 264   2          RI  = 0;    
+ 265   2          i++;
+ 266   2          
+ 267   2        }   
+ 268   1        
+ 269   1        if((verrify(out) == 1)&&(out[3] == 0x21))//校验接收数据
+ 270   1        {
+ 271   2            state = 1;//置位成功状态
+ 272   2        } 
+ 273   1        
+ 274   1        REN = 0;
+ 275   1        out[0]  = seek_data[4];
+ 276   1        out[1]  = seek_data[5];
+ 277   1        out[2]  = seek_data[6];
+ 278   1        out[3]  = seek_data[7];
+ 279   1        return state;
+ 280   1      }
+ 281          
+ 282          
+ 283          
+ 284          /********************************************/
+ 285          /*name: read_card                           */
+ 286          /*discription:读某一块数据                  */
+ 287          /*var in: sector 扇区号                     */
+ 288          /*result out: out 读出数据48字节传入53字节  */
+ 289          /*result out: state 状态                    */
+ 290          /********************************************/
+ 291          bit read_card(unsigned char sector, unsigned char *out)
+ 292          {
+ 293   1        unsigned char i = 0;
+ 294   1        unsigned int recive_count1 = 0;
+ 295   1        unsigned char seek_data[9];
+ 296   1        bit r_state = 0 ;
+ 297   1        /*寻卡*/
+ 298   1        if(seek_card(seek_data) ==  0)
+ 299   1        {
+ 300   2          return r_state;//无卡退出
+ 301   2        }
+ 302   1        
+C51 COMPILER V9.56.0.0   OPERATE_CARD                                                      09/03/2018 15:34:29 PAGE 6   
+
+ 303   1        /*
+ 304   1        填充数据到发送区
+ 305   1        */
+ 306   1        out[0]  = 0xaa;
+ 307   1        out[1]  = 0x55;
+ 308   1        out[2]  = 0x06;
+ 309   1        out[3]  = 0x21;
+ 310   1        out[4]  = 0x02;
+ 311   1        out[5]  = sector*4+2;
+ 312   1        out[6]  = 0x80;
+ 313   1        out[7]  = 0x00; 
+ 314   1        make_verr(out);//生成校验
+ 315   1        
+ 316   1        /*发送*/
+ 317   1        i = 0;
+ 318   1        while(i < 9)
+ 319   1        {
+ 320   2          TI = 0;
+ 321   2          SBUF = out[i];
+ 322   2          i++;
+ 323   2          while(!TI); 
+ 324   2        } 
+ 325   1        /*
+ 326   1        接收返回状态
+ 327   1        */
+ 328   1        RI = 0;
+ 329   1        i = 0;
+ 330   1        REN = 1;
+ 331   1        while(i < 21)//接收数据最多接收21个字节
+ 332   1        { 
+ 333   2          recive_count1 = 0;      
+ 334   2          while(!RI)
+ 335   2          {
+ 336   3            recive_count1++;
+ 337   3            if(recive_count1>=card_delay)
+ 338   3            {
+ 339   4              REN=0;
+ 340   4              return r_state;//超时退出
+ 341   4            }
+ 342   3          }
+ 343   2          out[i] = SBUF;
+ 344   2          RI  = 0;    
+ 345   2          i++;
+ 346   2          
+ 347   2        }
+ 348   1        if((verrify(out) != 1)  ||  (out[3] != 0x21))//校验接收数据
+ 349   1        {
+ 350   2          r_state = 0;
+ 351   2          return r_state;
+ 352   2        }
+ 353   1        /*映射到最后16字节*/
+ 354   1        i = 0;
+ 355   1        while(i < 16)
+ 356   1        {
+ 357   2          out[37 + i] = out[4 + i];
+ 358   2          i++;
+ 359   2        }
+ 360   1        
+ 361   1        /*
+ 362   1        填充数据到发送区
+ 363   1        */
+ 364   1        out[0]  = 0xaa;
+C51 COMPILER V9.56.0.0   OPERATE_CARD                                                      09/03/2018 15:34:29 PAGE 7   
+
+ 365   1        out[1]  = 0x55;
+ 366   1        out[2]  = 0x06;
+ 367   1        out[3]  = 0x21;
+ 368   1        out[4]  = 0x02;
+ 369   1        out[5]  = sector*4+1;
+ 370   1        out[6]  = 0x80;
+ 371   1        out[7]  = 0x00; 
+ 372   1        make_verr(out);//生成校验
+ 373   1        
+ 374   1        /*发送*/
+ 375   1        i = 0;
+ 376   1        while(i < 9)
+ 377   1        {
+ 378   2          TI = 0;
+ 379   2          SBUF = out[i];
+ 380   2          i++;
+ 381   2          while(!TI); 
+ 382   2        } 
+ 383   1        /*
+ 384   1        接收返回状态
+ 385   1        */
+ 386   1        RI = 0;
+ 387   1        i = 0;
+ 388   1        REN = 1;
+ 389   1        while(i < 21)//接收数据最多接收21个字节
+ 390   1        { 
+ 391   2          recive_count1 = 0;      
+ 392   2          while(!RI)
+ 393   2          {
+ 394   3            recive_count1++;
+ 395   3            if(recive_count1 >= card_delay)
+ 396   3            {
+ 397   4              REN=0;
+ 398   4              return r_state;//超时退出
+ 399   4            }
+ 400   3          }
+ 401   2          out[i] = SBUF;
+ 402   2          RI  = 0;    
+ 403   2          i++;
+ 404   2          
+ 405   2        }
+ 406   1      
+ 407   1        if((verrify(out) != 1)  ||  (out[3] != 0x21))//校验接收数据
+ 408   1        {
+ 409   2          r_state = 0;
+ 410   2          return r_state;
+ 411   2        }
+ 412   1        /*映射到中间16字节*/
+ 413   1        i = 0;
+ 414   1        while(i < 16)
+ 415   1        {
+ 416   2          out[21 + i] = out[4 + i];
+ 417   2          i++;
+ 418   2        }
+ 419   1        
+ 420   1        /*
+ 421   1        填充数据到发送区
+ 422   1        */
+ 423   1        out[0]  = 0xaa;
+ 424   1        out[1]  = 0x55;
+ 425   1        out[2]  = 0x06;
+ 426   1        out[3]  = 0x21;
+C51 COMPILER V9.56.0.0   OPERATE_CARD                                                      09/03/2018 15:34:29 PAGE 8   
+
+ 427   1        out[4]  = 0x02;
+ 428   1        out[5]  = sector*4+0;
+ 429   1        out[6]  = 0x80;
+ 430   1        out[7]  = 0x00; 
+ 431   1        make_verr(out);//生成校验
+ 432   1        
+ 433   1        /*发送*/
+ 434   1        i = 0;
+ 435   1        while(i < 9)
+ 436   1        {
+ 437   2          TI = 0;
+ 438   2          SBUF = out[i];
+ 439   2          i++;
+ 440   2          while(!TI); 
+ 441   2        } 
+ 442   1        /*
+ 443   1        接收返回状态
+ 444   1        */
+ 445   1        RI = 0;
+ 446   1        i = 0;
+ 447   1        REN = 1;
+ 448   1        while(i < 21)//接收数据最多接收21个字节
+ 449   1        { 
+ 450   2          recive_count1 = 0;      
+ 451   2          while(!RI)
+ 452   2          {
+ 453   3            recive_count1++;
+ 454   3            if(recive_count1>=card_delay)
+ 455   3            {
+ 456   4              REN=0;
+ 457   4              r_state = 0;
+ 458   4              return r_state;//超时退出
+ 459   4            }
+ 460   3          }
+ 461   2          out[i] = SBUF;
+ 462   2          RI  = 0;    
+ 463   2          i++;
+ 464   2          
+ 465   2        }   
+ 466   1        
+ 467   1        TEST = 1;
+ 468   1        
+ 469   1      
+ 470   1        if((verrify(out) == 1)&&(out[3] == 0x21))//校验接收数据
+ 471   1        {
+ 472   2            r_state = 1;//置位成功状态
+ 473   2        } 
+ 474   1        
+ 475   1        REN = 0;
+ 476   1        out[0]  = seek_data[4];
+ 477   1        out[1]  = seek_data[5];
+ 478   1        out[2]  = seek_data[6];
+ 479   1        out[3]  = seek_data[7];
+ 480   1        i = 0;
+ 481   1        while(i < 32)
+ 482   1        {
+ 483   2          out[20 + i] =out[21 + i]; 
+ 484   2          i++;
+ 485   2        } 
+ 486   1        
+ 487   1        TEST = 0;
+ 488   1        return r_state;
+C51 COMPILER V9.56.0.0   OPERATE_CARD                                                      09/03/2018 15:34:29 PAGE 9   
+
+ 489   1      }
+ 490          
+ 491          /********************************/
+ 492          /*name: read_user_card          */
+ 493          /*discription:读用户卡          */
+ 494          /*var in: in 扇区号             */
+ 495          /*var in: out 传入69个字节      */
+ 496          /*result out: 读出状态          */
+ 497          /********************************/
+ 498          bit read_user_card(unsigned char sector, unsigned char *out)
+ 499          {
+ 500   1        unsigned char i = 0;
+ 501   1        unsigned int recive_count1 = 0;
+ 502   1        unsigned char seek_data[9];
+ 503   1        bit r_state = 0 ;
+ 504   1        /*寻卡*/
+ 505   1        if(seek_card(seek_data) ==  0)
+ 506   1        {
+ 507   2          return r_state;//无卡退出
+ 508   2        }
+ 509   1        
+ 510   1        /*
+ 511   1        填充数据到发送区
+ 512   1        */
+ 513   1        out[0]  = 0xaa;
+ 514   1        out[1]  = 0x55;
+ 515   1        out[2]  = 0x06;
+ 516   1        out[3]  = 0x21;
+ 517   1        out[4]  = 0x02;
+ 518   1        out[5]  = (sector + 1) * 4 + 1;
+ 519   1        out[6]  = 0x80;
+ 520   1        out[7]  = 0x00; 
+ 521   1        make_verr(out);//生成校验
+ 522   1        
+ 523   1        /*发送*/
+ 524   1        i = 0;
+ 525   1        while(i < 9)
+ 526   1        {
+ 527   2          TI = 0;
+ 528   2          SBUF = out[i];
+ 529   2          i++;
+ 530   2          while(!TI); 
+ 531   2        } 
+ 532   1        /*
+ 533   1        接收返回状态
+ 534   1        */
+ 535   1        RI = 0;
+ 536   1        i = 0;
+ 537   1        REN = 1;
+ 538   1        while(i < 21)//接收数据最多接收21个字节
+ 539   1        { 
+ 540   2          recive_count1 = 0;      
+ 541   2          while(!RI)
+ 542   2          {
+ 543   3            recive_count1++;
+ 544   3            if(recive_count1>=card_delay)
+ 545   3            {
+ 546   4              REN=0;
+ 547   4              return r_state;//超时退出
+ 548   4            }
+ 549   3          }
+ 550   2          out[i] = SBUF;
+C51 COMPILER V9.56.0.0   OPERATE_CARD                                                      09/03/2018 15:34:29 PAGE 10  
+
+ 551   2          RI  = 0;    
+ 552   2          i++;
+ 553   2          
+ 554   2        }
+ 555   1        if((verrify(out) != 1)  ||  (out[3] != 0x21))//校验接收数据
+ 556   1        {
+ 557   2          r_state = 0;
+ 558   2          return r_state;
+ 559   2        }
+ 560   1        /*映射到最后16字节*/
+ 561   1        i = 0;
+ 562   1        while(i < 16)
+ 563   1        {
+ 564   2          out[53 + i] = out[4 + i];
+ 565   2          i++;
+ 566   2        }
+ 567   1        
+ 568   1        /*
+ 569   1        填充数据到发送区
+ 570   1        */
+ 571   1        out[0]  = 0xaa;
+ 572   1        out[1]  = 0x55;
+ 573   1        out[2]  = 0x06;
+ 574   1        out[3]  = 0x21;
+ 575   1        out[4]  = 0x02;
+ 576   1        out[5]  = (sector + 1) * 4 + 0;
+ 577   1        out[6]  = 0x80;
+ 578   1        out[7]  = 0x00; 
+ 579   1        make_verr(out);//生成校验
+ 580   1        
+ 581   1        /*发送*/
+ 582   1        i = 0;
+ 583   1        while(i < 9)
+ 584   1        {
+ 585   2          TI = 0;
+ 586   2          SBUF = out[i];
+ 587   2          i++;
+ 588   2          while(!TI); 
+ 589   2        } 
+ 590   1        /*
+ 591   1        接收返回状态
+ 592   1        */
+ 593   1        RI = 0;
+ 594   1        i = 0;
+ 595   1        REN = 1;
+ 596   1        while(i < 21)//接收数据最多接收21个字节
+ 597   1        { 
+ 598   2          recive_count1 = 0;      
+ 599   2          while(!RI)
+ 600   2          {
+ 601   3            recive_count1++;
+ 602   3            if(recive_count1>=card_delay)
+ 603   3            {
+ 604   4              REN=0;
+ 605   4              return r_state;//超时退出
+ 606   4            }
+ 607   3          }
+ 608   2          out[i] = SBUF;
+ 609   2          RI  = 0;    
+ 610   2          i++;
+ 611   2          
+ 612   2        }
+C51 COMPILER V9.56.0.0   OPERATE_CARD                                                      09/03/2018 15:34:29 PAGE 11  
+
+ 613   1        if((verrify(out) != 1)  ||  (out[3] != 0x21))//校验接收数据
+ 614   1        {
+ 615   2          r_state = 0;
+ 616   2          return r_state;
+ 617   2        }
+ 618   1        /*映射到后16字节*/
+ 619   1        i = 0;
+ 620   1        while(i < 16)
+ 621   1        {
+ 622   2          out[37 + i] = out[4 + i];
+ 623   2          i++;
+ 624   2        } 
+ 625   1      
+ 626   1        /*
+ 627   1        填充数据到发送区
+ 628   1        */
+ 629   1        out[0]  = 0xaa;
+ 630   1        out[1]  = 0x55;
+ 631   1        out[2]  = 0x06;
+ 632   1        out[3]  = 0x21;
+ 633   1        out[4]  = 0x02;
+ 634   1        out[5]  = sector * 4 + 2;
+ 635   1        out[6]  = 0x80;
+ 636   1        out[7]  = 0x00; 
+ 637   1        make_verr(out);//生成校验
+ 638   1        
+ 639   1        /*发送*/
+ 640   1        i = 0;
+ 641   1        while(i < 9)
+ 642   1        {
+ 643   2          TI = 0;
+ 644   2          SBUF = out[i];
+ 645   2          i++;
+ 646   2          while(!TI); 
+ 647   2        } 
+ 648   1        /*
+ 649   1        接收返回状态
+ 650   1        */
+ 651   1        RI = 0;
+ 652   1        i = 0;
+ 653   1        REN = 1;
+ 654   1        while(i < 21)//接收数据最多接收21个字节
+ 655   1        { 
+ 656   2          recive_count1 = 0;      
+ 657   2          while(!RI)
+ 658   2          {
+ 659   3            recive_count1++;
+ 660   3            if(recive_count1>=card_delay)
+ 661   3            {
+ 662   4              REN=0;
+ 663   4              return r_state;//超时退出
+ 664   4            }
+ 665   3          }
+ 666   2          out[i] = SBUF;
+ 667   2          RI  = 0;    
+ 668   2          i++;
+ 669   2          
+ 670   2        }
+ 671   1        if((verrify(out) != 1)  ||  (out[3] != 0x21))//校验接收数据
+ 672   1        {
+ 673   2          r_state = 0;
+ 674   2          return r_state;
+C51 COMPILER V9.56.0.0   OPERATE_CARD                                                      09/03/2018 15:34:29 PAGE 12  
+
+ 675   2        }
+ 676   1        /*映射到最后16字节*/
+ 677   1        i = 0;
+ 678   1        while(i < 16)
+ 679   1        {
+ 680   2          out[21 + i] = out[4 + i];
+ 681   2          i++;
+ 682   2        } 
+ 683   1      
+ 684   1        /*
+ 685   1        填充数据到发送区
+ 686   1        */
+ 687   1        out[0]  = 0xaa;
+ 688   1        out[1]  = 0x55;
+ 689   1        out[2]  = 0x06;
+ 690   1        out[3]  = 0x21;
+ 691   1        out[4]  = 0x02;
+ 692   1        out[5]  = sector*4+1;
+ 693   1        out[6]  = 0x80;
+ 694   1        out[7]  = 0x00; 
+ 695   1        make_verr(out);//生成校验
+ 696   1        
+ 697   1        /*发送*/
+ 698   1        i = 0;
+ 699   1        while(i < 9)
+ 700   1        {
+ 701   2          TI = 0;
+ 702   2          SBUF = out[i];
+ 703   2          i++;
+ 704   2          while(!TI); 
+ 705   2        } 
+ 706   1        /*
+ 707   1        接收返回状态
+ 708   1        */
+ 709   1        RI = 0;
+ 710   1        i = 0;
+ 711   1        REN = 1;
+ 712   1        while(i < 21)//接收数据最多接收21个字节
+ 713   1        { 
+ 714   2          recive_count1 = 0;      
+ 715   2          while(!RI)
+ 716   2          {
+ 717   3            recive_count1++;
+ 718   3            if(recive_count1>=card_delay)
+ 719   3            {
+ 720   4              REN=0;
+ 721   4              r_state = 0;
+ 722   4              return r_state;//超时退出
+ 723   4            }
+ 724   3          }
+ 725   2          out[i] = SBUF;
+ 726   2          RI  = 0;    
+ 727   2          i++;
+ 728   2          
+ 729   2        }   
+ 730   1        
+ 731   1        TEST = 1;
+ 732   1        
+ 733   1      
+ 734   1        if((verrify(out) == 1)&&(out[3] == 0x21))//校验接收数据
+ 735   1        {
+ 736   2            r_state = 1;//置位成功状态
+C51 COMPILER V9.56.0.0   OPERATE_CARD                                                      09/03/2018 15:34:29 PAGE 13  
+
+ 737   2        } 
+ 738   1        
+ 739   1        REN = 0;
+ 740   1        out[0]  = seek_data[4];
+ 741   1        out[1]  = seek_data[5];
+ 742   1        out[2]  = seek_data[6];
+ 743   1        out[3]  = seek_data[7];
+ 744   1        i = 0;
+ 745   1        while(i < 48)
+ 746   1        {
+ 747   2          out[20 + i] =out[21 + i]; 
+ 748   2          i++;
+ 749   2        } 
+ 750   1        
+ 751   1        TEST = 0;
+ 752   1        return r_state; 
+ 753   1        
+ 754   1      }
+ 755          
+ 756          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2621    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      78
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       5
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

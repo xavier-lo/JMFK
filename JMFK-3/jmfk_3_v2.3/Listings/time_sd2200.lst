@@ -1,0 +1,99 @@
+C51 COMPILER V9.56.0.0   TIME_SD2200                                                       09/07/2018 12:58:50 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE TIME_SD2200
+OBJECT MODULE PLACED IN .\Objects\time_sd2200.obj
+COMPILER INVOKED BY: J:\Keil_v5\C51\BIN\C51.EXE time_sd2200.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listin
+                    -gs\time_sd2200.lst) TABS(2) OBJECT(.\Objects\time_sd2200.obj)
+
+line level    source
+
+   1          ////**********************************////
+   2          //=================//
+   3          //本程序适用于
+   4          //用于JMFK-3 刷卡器
+   5          //MCU：stc89c55rd+
+   6          //晶振：29.4912MHz 震荡周期0.4069us 双倍速下载
+   7          //文件：time_sd2200.C
+   8          //================//
+   9          #include<time_sd2200.h>
+  10          #include<SHJY_IIC.h>
+  11          
+  12          
+  13          /********************************/
+  14          /*name: read_time               */
+  15          /*discription:读取时间          */
+  16          /*var in:                       */
+  17          /*result out:out 存放读取数据   */
+  18          /********************************/
+  19          /*年 月 日 周 时 分 秒          */
+  20          bit read_time(unsigned char *out)
+  21          {
+  22   1        unsigned char i=0;
+  23   1        bit state = 0;
+  24   1        if(!IIC_START())
+  25   1        {
+  26   2          if(!IIC_send_byte(0x65))//读年 
+  27   2          {
+  28   3            while(i<7)
+  29   3            {
+  30   4              out[i]=IIC_read_Byte(); 
+  31   4              IIC_send_bit(0);//应答0
+  32   4              i++;
+  33   4            }
+  34   3            IIC_send_bit(1);//应答1
+  35   3            state = 1;
+  36   3          }
+  37   2        }
+  38   1        
+  39   1        IIC_STOP();
+  40   1        return state;
+  41   1      }
+  42          
+  43          /********************************/
+  44          /*name:   set_time              */
+  45          /*discription:  设置打电话      */
+  46          /*var in:in 输入日期时间        */
+  47          /*result out:状态               */
+  48          /********************************/
+  49          bit set_time(unsigned char *in)
+  50          {
+  51   1        bit state = 0;
+  52   1        unsigned char xdata i = 0;
+  53   1        if((in[4] >= 13) &&(in[4] <= 23)) in[4] |= 0x40;
+  54   1        if(!IIC_START())
+C51 COMPILER V9.56.0.0   TIME_SD2200                                                       09/07/2018 12:58:50 PAGE 2   
+
+  55   1        {
+  56   2          if(!IIC_send_byte(0x64))//写年月日周时分秒
+  57   2          {
+  58   3            while(i < 6)
+  59   3            {
+  60   4              if(IIC_send_byte_ltoh(in[i])) return 0;
+  61   4              i++;
+  62   4            }
+  63   3            if(!IIC_send_byte_ltoh(0x00)) state = 1;
+  64   3          }
+  65   2        }
+  66   1        
+  67   1        IIC_STOP(); 
+  68   1        
+  69   1        
+  70   1        return state;
+  71   1      }
+  72          
+  73          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    184    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----       1
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       7
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       2
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
